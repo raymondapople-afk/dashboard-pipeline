@@ -35,6 +35,11 @@ def test_fills_missing_customer_id_with_guest():
     assert row.iloc[0]["customer_id"] == "GUEST"
 
 
+def test_drops_excluded_descriptions():
+    df, _ = _cleaned()
+    assert not df["order_id"].eq("536371").any()
+
+
 def test_remaining_row_count():
     df, _ = _cleaned()
     assert len(df) == 4

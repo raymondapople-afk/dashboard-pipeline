@@ -24,6 +24,9 @@ def clean(df: pd.DataFrame, config: ClientConfig) -> pd.DataFrame:
     df = df[~(df["product_desc"].eq("") & df["product_code"].eq(""))]
     df = df[df["date"].notna()]
 
+    excluded = {d.lower() for d in config.excluded_descriptions}
+    df = df[~df["product_desc"].str.lower().isin(excluded)]
+
     df["customer_id"] = df["customer_id"].replace("", "GUEST")
 
     return df.reset_index(drop=True)

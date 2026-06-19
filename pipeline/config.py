@@ -25,6 +25,7 @@ class ClientConfig:
     date_format: str
     cancellation_prefix: str
     category_rules: list[CategoryRule]
+    excluded_descriptions: list[str]
 
     @property
     def raw_columns(self) -> list[str]:
@@ -58,4 +59,5 @@ def load_client_config(client: str) -> ClientConfig:
         date_format=raw["date_format"],
         cancellation_prefix=raw["cancellation_prefix"],
         category_rules=category_rules,
+        excluded_descriptions=raw.get("excluded_descriptions", []),
     )
