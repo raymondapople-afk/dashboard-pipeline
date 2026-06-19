@@ -1,0 +1,39 @@
+# Client config: UK Online Retail export
+# column_map: raw CSV header -> standard internal field name.
+# Every key listed here must exist as a column in the raw CSV.
+column_map:
+  InvoiceNo: order_id
+  InvoiceDate: date
+  CustomerID: customer_id
+  Country: country
+  StockCode: product_code
+  Description: product_desc
+  Quantity: quantity
+  UnitPrice: unit_price
+
+# strptime format for the raw date column (this export uses month/day/year).
+date_format: "%m/%d/%Y %H:%M"
+
+# order_id values starting with this prefix are cancellations and are dropped.
+cancellation_prefix: "C"
+
+# Ordered keyword -> category rules. First match wins (case-insensitive
+# substring match against product_desc). Anything unmatched becomes
+# "Uncategorized". Edit freely per client; the pipeline code never changes.
+category_rules:
+  - category: "Christmas & Seasonal"
+    keywords: ["christmas", "xmas", "easter", "halloween", "advent"]
+  - category: "Home Decor"
+    keywords: ["light", "candle", "holder", "lantern", "frame", "mirror", "clock", "vase", "ornament"]
+  - category: "Kitchen & Dining"
+    keywords: ["mug", "cup", "plate", "bowl", "tin", "jar", "kitchen", "tea", "coffee", "cake", "baking"]
+  - category: "Bags & Accessories"
+    keywords: ["bag", "purse", "wallet", "umbrella", "scarf", "jewel", "necklace", "bracelet"]
+  - category: "Stationery & Craft"
+    keywords: ["card", "notebook", "pen", "pencil", "craft", "sticker", "paper", "gift wrap", "ribbon"]
+  - category: "Toys & Games"
+    keywords: ["toy", "game", "doll", "puzzle", "ball"]
+  - category: "Garden & Outdoor"
+    keywords: ["garden", "outdoor", "plant", "pot", "watering"]
+  - category: "Bath & Linen"
+    keywords: ["towel", "bath", "soap", "blanket", "cushion", "linen"]
