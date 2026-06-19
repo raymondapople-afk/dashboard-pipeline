@@ -17,23 +17,52 @@ date_format: "%m/%d/%Y %H:%M"
 # order_id values starting with this prefix are cancellations and are dropped.
 cancellation_prefix: "C"
 
-# Ordered keyword -> category rules. First match wins (case-insensitive
-# substring match against product_desc). Anything unmatched becomes
-# "Uncategorized". Edit freely per client; the pipeline code never changes.
+# Ordered keyword -> category rules. First match wins. Matching is
+# case-insensitive, word-boundary aware, and tolerant of simple plurals
+# (a keyword "card" also matches "cards") -- see pipeline/transform.py.
+# Anything unmatched becomes "Uncategorized". Edit freely per client;
+# the pipeline code never changes.
 category_rules:
   - category: "Christmas & Seasonal"
-    keywords: ["christmas", "xmas", "easter", "halloween", "advent"]
+    keywords: ["christmas", "xmas", "easter", "halloween", "advent", "sleigh"]
+  - category: "Hot Water Bottles & Warmers"
+    keywords: ["hot water bottle", "hottie", "hand warmer"]
+  - category: "Bunting & Party"
+    keywords: ["bunting", "party", "cracker", "confetti", "balloon", "parasol", "garland"]
+  - category: "Signage & Boards"
+    keywords: ["sign", "chalkboard", "memo board", "board", "doormat"]
+  - category: "Storage & Furniture"
+    keywords: ["cabinet", "drawer", "storage box", "coat rack", "hook", "chest", "shelf",
+               "book box", "trinket box", "hanger", "button box"]
   - category: "Home Decor"
-    keywords: ["light", "candle", "holder", "lantern", "frame", "mirror", "clock", "vase", "ornament"]
+    keywords: ["light", "candle", "candleholder", "chocolatecandle", "holder", "lantern", "frame",
+               "mirror", "clock", "vase", "ornament", "decoration", "wicker", "trellis", "doorstop",
+               "owl", "photo", "magnet"]
   - category: "Kitchen & Dining"
-    keywords: ["mug", "cup", "plate", "bowl", "tin", "jar", "kitchen", "tea", "coffee", "cake", "baking"]
+    keywords: ["mug", "cup", "plate", "bowl", "tin", "jar", "kitchen", "tea", "coffee", "cake", "baking",
+               "lunch box", "pantry", "jam making", "snack box", "bread bin", "recipe box", "recipe book",
+               "cookie cutter", "teacup", "teapot", "cakestand", "jug", "napkin", "cutlery",
+               "sugar dispenser", "washing up", "picnic basket", "doily", "doilies", "apron",
+               "food container", "measuring spoon", "oven glove", "crate", "place setting",
+               "placemat", "coaster", "bottle opener", "frying pan"]
   - category: "Bags & Accessories"
-    keywords: ["bag", "purse", "wallet", "umbrella", "scarf", "jewel", "necklace", "bracelet"]
+    keywords: ["bag", "purse", "wallet", "umbrella", "scarf", "jewel", "jewellery box", "jewelry box",
+               "necklace", "bracelet", "shopper", "key fob", "fan", "case", "poncho", "hair clip", "ring"]
   - category: "Stationery & Craft"
-    keywords: ["card", "notebook", "pen", "pencil", "craft", "sticker", "paper", "gift wrap", "ribbon"]
+    keywords: ["card", "notebook", "note book", "pen", "pencil", "craft", "sticker", "paper",
+               "gift wrap", "wrap", "ribbon", "stationery", "crayon", "eraser", "ruler",
+               "exercise book", "sewing kit", "sewing box", "paint set", "chalk", "stamp set",
+               "writing set", "knitting", "colouring", "gift tag", "modelling clay", "notepad"]
   - category: "Toys & Games"
-    keywords: ["toy", "game", "doll", "puzzle", "ball"]
+    keywords: ["toy", "game", "doll", "puzzle", "ball", "spinning top", "domino", "skittle", "glider",
+               "feltcraft", "bingo", "naughts", "snakes & ladders", "piggy bank", "playhouse", "babushka",
+               "building block", "harmonica", "skipping rope", "drawing slate"]
   - category: "Garden & Outdoor"
-    keywords: ["garden", "outdoor", "plant", "pot", "watering"]
+    keywords: ["garden", "outdoor", "plant", "pot", "watering", "gardener"]
   - category: "Bath & Linen"
-    keywords: ["towel", "bath", "soap", "blanket", "cushion", "linen"]
+    keywords: ["towel", "bath", "soap", "blanket", "cushion", "linen", "tissue", "washroom",
+               "clothes peg", "bib"]
+  - category: "Beauty & Personal Care"
+    keywords: ["lip gloss", "perfume bottle"]
+  - category: "Shipping & Fees"
+    keywords: ["postage", "carriage"]

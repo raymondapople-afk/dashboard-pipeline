@@ -14,7 +14,7 @@ STANDARD_COLUMNS = [
 def _categorize(description: str, config: ClientConfig) -> str:
     desc_lower = description.lower()
     for rule in config.category_rules:
-        if any(re.search(rf"\b{re.escape(keyword)}\b", desc_lower) for keyword in rule.keywords):
+        if any(re.search(rf"\b{re.escape(keyword)}(e?s)?\b", desc_lower) for keyword in rule.keywords):
             return rule.category
     return "Uncategorized"
 

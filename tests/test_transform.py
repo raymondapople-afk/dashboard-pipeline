@@ -30,4 +30,4 @@ def test_category_keyword_match():
 def test_category_falls_back_to_uncategorized():
     df = _transformed()
     row = df[df["order_id"] == "536370"].iloc[0]
-    assert row["category"] == "Uncategorized"  # "coat hanger" matches no rule
+    assert row["category"] == "Uncategorized"  # "novelty item" matches no rule
