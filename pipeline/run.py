@@ -40,12 +40,14 @@ def main() -> None:
     dropped = raw_count - clean_count
     total_revenue = final_df["revenue"].sum()
     date_min, date_max = final_df["date"].min(), final_df["date"].max()
+    peak_hour = final_df.groupby("hour")["order_id"].nunique().idxmax()
 
     print(f"Client: {config.name}")
     print(f"Raw rows: {raw_count}")
     print(f"Cleaned rows: {clean_count} (dropped {dropped}, {dropped / raw_count:.1%})")
     print(f"Date range: {date_min} to {date_max}")
     print(f"Total revenue: {total_revenue:,.2f}")
+    print(f"Peak order hour: {peak_hour:02d}:00")
     print(f"Wrote cleaned CSV: {csv_out}")
     print(f"Wrote dashboard JSON to: {json_out_dir}/")
 

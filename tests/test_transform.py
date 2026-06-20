@@ -31,3 +31,10 @@ def test_category_falls_back_to_uncategorized():
     df = _transformed()
     row = df[df["order_id"] == "536370"].iloc[0]
     assert row["category"] == "Uncategorized"  # "novelty item" matches no rule
+
+
+def test_hour_and_date_split_from_timestamp():
+    df = _transformed()
+    row = df[df["order_id"] == "536366"].iloc[0]  # raw timestamp 12/1/2010 8:28
+    assert row["hour"] == 8
+    assert str(row["date"]) == "2010-12-01"

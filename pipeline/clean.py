@@ -15,7 +15,10 @@ def clean(df: pd.DataFrame, config: ClientConfig) -> pd.DataFrame:
 
     df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
     df["unit_price"] = pd.to_numeric(df["unit_price"], errors="coerce")
-    df["date"] = pd.to_datetime(df["date"], format=config.date_format, errors="coerce").dt.date
+    # Keep full datetime precision here -- transform.py splits this into a
+    # date and an hour-of-day field. Truncating to date here would lose the
+    # time-of-day information needed for traffic/shopping-pattern analysis.
+    df["date"] = pd.to_datetime(df["date"], format=config.date_format, errors="coerce")
 
     df = df.drop_duplicates()
 

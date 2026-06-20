@@ -6,7 +6,7 @@ import pandas as pd
 from pipeline.config import ClientConfig
 
 STANDARD_COLUMNS = [
-    "order_id", "date", "customer_id", "country", "product_code",
+    "order_id", "date", "hour", "customer_id", "country", "product_code",
     "product_desc", "category", "quantity", "unit_price", "revenue",
 ]
 
@@ -23,4 +23,6 @@ def transform(df: pd.DataFrame, config: ClientConfig) -> pd.DataFrame:
     df = df.copy()
     df["revenue"] = (df["quantity"] * df["unit_price"]).round(2)
     df["category"] = df["product_desc"].apply(lambda d: _categorize(d, config))
+    df["hour"] = df["date"].dt.hour
+    df["date"] = df["date"].dt.date
     return df[STANDARD_COLUMNS]

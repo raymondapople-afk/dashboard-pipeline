@@ -20,10 +20,25 @@ Outputs:
 - `data/exports/revenue_by_date.json`
 - `data/exports/revenue_by_category.json`
 - `data/exports/customer_trends.json`
+- `data/exports/orders_by_hour.json` — order count + revenue per hour-of-day (0–23), zero-filled
+- `data/exports/orders_by_hour_country.json` — order count + revenue per hour-of-day x country
+- `data/exports/revenue_by_hour_category.json` — revenue + line-item count per hour-of-day x category
+
+The CLI also prints the single busiest order hour (`Peak order hour: HH:00`)
+on every run.
 
 ## Standard schema
 
-`order_id, date, customer_id, country, product_code, product_desc, category, quantity, unit_price, revenue`
+`order_id, date, hour, customer_id, country, product_code, product_desc, category, quantity, unit_price, revenue`
+
+`hour` (0–23) and `date` are both split from the raw timestamp in
+`transform.py` — `clean.py` deliberately keeps full datetime precision
+through cleaning so this split can happen later. `hour` exists specifically
+to support shopping/traffic-trend analysis (when orders are placed, broken
+down by country or category) — it's not used for order or customer
+identification, since `order_id` already groups an order's line items and
+`customer_id` + distinct `order_id` count already identifies repeat
+customers, regardless of time-of-day.
 
 ## Adding a new client
 
