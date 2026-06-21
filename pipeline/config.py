@@ -26,10 +26,16 @@ class ClientConfig:
     cancellation_prefix: str
     category_rules: list[CategoryRule]
     excluded_descriptions: list[str]
+    encoding: str
+    constants: dict[str, str]
+    date_columns: list[str]
 
     @property
     def raw_columns(self) -> list[str]:
-        return list(self.column_map.keys())
+        columns = list(self.column_map.keys())
+        if self.date_columns:
+            columns += self.date_columns
+        return columns
 
 
 def load_client_config(client: str) -> ClientConfig:
@@ -41,7 +47,12 @@ def load_client_config(client: str) -> ClientConfig:
         raw = yaml.safe_load(f)
 
     column_map = raw["column_map"]
-    standard_fields = set(column_map.values())
+    constants = raw.get("constants", {})
+    date_columns = raw.get("date_columns", [])
+
+    standard_fields = set(column_map.values()) | set(constants.keys())
+    if date_columns:
+        standard_fields.add("date")
     missing = REQUIRED_STANDARD_FIELDS - standard_fields
     if missing:
         raise ValueError(
@@ -60,4 +71,7 @@ def load_client_config(client: str) -> ClientConfig:
         cancellation_prefix=raw["cancellation_prefix"],
         category_rules=category_rules,
         excluded_descriptions=raw.get("excluded_descriptions", []),
+        encoding=raw.get("encoding", "utf-8-sig"),
+        constants=constants,
+        date_columns=date_columns,
     )

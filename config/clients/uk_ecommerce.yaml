@@ -1,6 +1,12 @@
 # Client config: UK Online Retail export
 # column_map: raw CSV header -> standard internal field name.
 # Every key listed here must exist as a column in the raw CSV.
+
+# This export contains raw non-UTF-8 bytes (e.g. a pound sign), so it must be
+# read as latin1 -- confirmed it fails to decode as UTF-8. Explicit here
+# because the pipeline default is utf-8-sig, which would corrupt this file.
+encoding: "latin1"
+
 column_map:
   InvoiceNo: order_id
   InvoiceDate: date

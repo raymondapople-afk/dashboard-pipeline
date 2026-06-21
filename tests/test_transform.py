@@ -6,11 +6,19 @@ from pipeline.ingest import load_raw
 from pipeline.transform import transform
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_raw.csv"
+COFFEE_FIXTURE = Path(__file__).parent / "fixtures" / "sample_coffee_raw.csv"
 
 
 def _transformed():
     config = load_client_config("uk_ecommerce")
     raw_df = load_raw(str(FIXTURE), config)
+    cleaned_df = clean(raw_df, config)
+    return transform(cleaned_df, config)
+
+
+def _transformed_coffee():
+    config = load_client_config("coffee_shop")
+    raw_df = load_raw(str(COFFEE_FIXTURE), config)
     cleaned_df = clean(raw_df, config)
     return transform(cleaned_df, config)
 
@@ -38,3 +46,16 @@ def test_hour_and_date_split_from_timestamp():
     row = df[df["order_id"] == "536366"].iloc[0]  # raw timestamp 12/1/2010 8:28
     assert row["hour"] == 8
     assert str(row["date"]) == "2010-12-01"
+
+
+def test_real_category_column_is_not_overwritten_by_keyword_rules():
+    df = _transformed_coffee()
+    row = df[df["order_id"] == "2"].iloc[0]  # product_category "Tea"
+    assert row["category"] == "Tea"  # would be "Uncategorized" if keyword-derived
+
+
+def test_coffee_hour_combines_separate_date_and_time_columns():
+    df = _transformed_coffee()
+    row = df[df["order_id"] == "3"].iloc[0]  # raw transaction_time 13:14:04
+    assert row["hour"] == 13
+    assert str(row["date"]) == "2023-01-02"

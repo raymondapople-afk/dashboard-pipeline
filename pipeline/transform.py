@@ -22,7 +22,15 @@ def _categorize(description: str, config: ClientConfig) -> str:
 def transform(df: pd.DataFrame, config: ClientConfig) -> pd.DataFrame:
     df = df.copy()
     df["revenue"] = (df["quantity"] * df["unit_price"]).round(2)
-    df["category"] = df["product_desc"].apply(lambda d: _categorize(d, config))
+
+    # If the client mapped a real category column via column_map, ingest.py
+    # already populated it -- keep it as-is rather than overwriting it with
+    # keyword derivation, which only makes sense when no real category exists.
+    if "category" in df.columns:
+        df["category"] = df["category"].str.strip()
+    else:
+        df["category"] = df["product_desc"].apply(lambda d: _categorize(d, config))
+
     df["hour"] = df["date"].dt.hour
     df["date"] = df["date"].dt.date
     return df[STANDARD_COLUMNS]

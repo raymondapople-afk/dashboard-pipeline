@@ -1,0 +1,40 @@
+# Client config: Coffee Shop Sales export
+# column_map: raw CSV header -> standard internal field name.
+# Every key listed here must exist as a column in the raw CSV.
+
+# File is UTF-8 with a BOM -- utf-8-sig (the pipeline default) strips it
+# cleanly. Confirmed via hex dump (EF BB BF before the header).
+encoding: "utf-8-sig"
+
+column_map:
+  transaction_id: order_id
+  product_id: product_code
+  product_detail: product_desc
+  product_category: category   # real category column -- passed through as-is,
+                                # not derived via category_rules (see transform.py)
+  transaction_qty: quantity
+  unit_price: unit_price
+
+# This export logs date and time-of-day as two separate raw columns instead
+# of one combined timestamp. ingest.py joins them (space-separated) into a
+# single "date" field before parsing.
+date_columns: [transaction_date, transaction_time]
+date_format: "%d/%m/%Y %H:%M:%S"
+
+# transaction_id is purely numeric (1, 2, 3, ...) and this export has no
+# cancellation concept, so this prefix is set to something that will never
+# match any order_id.
+cancellation_prefix: "__NONE__"
+
+# This is anonymous point-of-sale data: no customer identity and no country
+# column at all (all 3 stores are in NYC). Filled in as literal constants
+# since there's no raw column to map.
+constants:
+  customer_id: "GUEST"
+  country: "USA"
+
+# Not needed for this client -- category comes straight from product_category.
+category_rules: []
+
+# Confirmed clean: 0 duplicate rows, 0 non-positive quantity/price, 0 blanks.
+excluded_descriptions: []
