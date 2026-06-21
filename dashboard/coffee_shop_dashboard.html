@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Coffee Shop Performance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #090c14;
+    --bg-glow-1: #1b1042;
+    --bg-glow-2: #062430;
+    --card: rgba(255,255,255,0.035);
+    --card-border: rgba(255,255,255,0.09);
+    --card-hover: rgba(255,255,255,0.06);
+    --text: #f3f5fa;
+    --text-dim: #93a0b8;
+    --text-faint: #5e6b85;
+    --accent-a: #8b6bff;
+    --accent-b: #29d6e8;
+    --accent-c: #ff7ab8;
+    --accent-d: #ffb648;
+    --accent-e: #4ee69a;
+    --good: #4ee69a;
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 8% 0%, var(--bg-glow-1) 0%, transparent 45%),
+      radial-gradient(circle at 95% 12%, var(--bg-glow-2) 0%, transparent 40%),
+      radial-gradient(circle at 50% 100%, #150b28 0%, transparent 55%),
+      var(--bg);
+  }
+  .page-content{padding: 36px clamp(16px, 4vw, 56px) 64px;}
+  .wrap{max-width:1320px; margin:0 auto;}
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    flex-wrap:wrap; margin-bottom:30px; padding-bottom:22px;
+    border-bottom:1px solid var(--card-border);
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .mark{
+    width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    font-size:22px; box-shadow:0 8px 24px -8px rgba(139,107,255,0.65);
+  }
+  h1{font-size:25px; font-weight:800; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:13.5px; margin-top:3px;}
+  .meta-pills{display:flex; gap:10px; flex-wrap:wrap;}
+  .pill{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--text-dim);
+    background:var(--card); border:1px solid var(--card-border); padding:7px 13px; border-radius:999px;
+  }
+  .pill b{color:var(--text); font-weight:700;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--accent-e); box-shadow:0 0 8px var(--accent-e);}
+
+  /* ---------- Section labels ---------- */
+  .section-label{
+    font-size:11.5px; font-weight:700; letter-spacing:0.11em; text-transform:uppercase;
+    color:var(--text-faint); margin:38px 0 14px; display:flex; align-items:center; gap:10px;
+  }
+  .section-label::after{content:""; flex:1; height:1px; background:var(--card-border);}
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;}
+  .kpi-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:20px 22px; position:relative; overflow:hidden; transition:transform .25s, border-color .25s;
+  }
+  .kpi-card::before{
+    content:""; position:absolute; inset:0; opacity:0; transition:opacity .3s;
+    background:linear-gradient(135deg, rgba(139,107,255,0.14), transparent 60%);
+  }
+  .kpi-card:hover{transform:translateY(-3px); border-color:rgba(255,255,255,0.18);}
+  .kpi-card:hover::before{opacity:1;}
+  .kpi-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .kpi-label{font-size:12.5px; color:var(--text-dim); font-weight:600;}
+  .kpi-icon{font-size:17px; opacity:0.85;}
+  .kpi-value{font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-top:10px; font-family:'JetBrains Mono', monospace;}
+  .kpi-foot{font-size:12px; color:var(--text-faint); margin-top:7px; display:flex; align-items:center; gap:6px;}
+  .kpi-foot.up{color:var(--good);}
+
+  /* ---------- Insight chips ---------- */
+  .insight-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;}
+  .insight-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:16px 18px; display:flex; gap:13px; align-items:flex-start;
+  }
+  .insight-emoji{
+    width:34px; height:34px; min-width:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; background:rgba(255,255,255,0.05);
+  }
+  .insight-title{font-size:13px; font-weight:700; margin-bottom:3px;}
+  .insight-text{font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+  .insight-text b{color:var(--text); font-weight:700;}
+
+  /* ---------- Chart grid ---------- */
+  .grid-12{display:grid; grid-template-columns:repeat(12, 1fr); gap:16px;}
+  .card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:22px 24px;
+  }
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:12px; flex-wrap:wrap;}
+  .card-title{font-size:14.5px; font-weight:700;}
+  .card-note{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .legend-chip{font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.05); color:var(--text-dim); display:flex; align-items:center; gap:6px;}
+
+  .col-8{grid-column:span 8;} .col-7{grid-column:span 7;} .col-6{grid-column:span 6;}
+  .col-5{grid-column:span 5;} .col-4{grid-column:span 4;} .col-12{grid-column:span 12;}
+
+  .chart-box{position:relative; width:100%;}
+  .h-300{height:300px;} .h-260{height:260px;} .h-230{height:230px;}
+
+  /* ---------- Category legend list ---------- */
+  .cat-legend{display:flex; flex-direction:column; gap:11px; margin-top:14px;}
+  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .cat-swatch{width:9px; height:9px; border-radius:3px; flex:none;}
+  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cat-pct{font-weight:700; font-family:'JetBrains Mono', monospace; color:var(--text);}
+
+  /* ---------- Split bar (sized vs unsized) ---------- */
+  .split-bar{height:14px; border-radius:999px; overflow:hidden; display:flex; background:rgba(255,255,255,0.06); margin:14px 0 12px;}
+  .split-uk{background:linear-gradient(90deg, var(--accent-a), var(--accent-b));}
+  .split-intl{background:rgba(255,255,255,0.14);}
+  .split-labels{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+  .split-labels b{color:var(--text); font-family:'JetBrains Mono', monospace;}
+
+  /* ---------- Product leaderboard ---------- */
+  .lb-row{display:grid; grid-template-columns:30px 1.7fr 1fr 100px; align-items:center; gap:14px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05);}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-rank{font-family:'JetBrains Mono', monospace; font-weight:700; color:var(--text-faint); font-size:13px;}
+  .lb-name{font-size:13px; font-weight:600;}
+  .lb-code{font-size:11px; color:var(--text-faint); font-family:'JetBrains Mono', monospace; margin-top:2px;}
+  .lb-bar-track{height:7px; border-radius:999px; background:rgba(255,255,255,0.06); overflow:hidden;}
+  .lb-bar-fill{height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent-a), var(--accent-c));}
+  .lb-value{text-align:right; font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13px;}
+  .lb-sub{text-align:right; font-size:10.5px; color:var(--text-faint); margin-top:2px;}
+  .badge-solo{display:inline-block; margin-left:6px; font-size:9.5px; font-weight:700; color:var(--accent-d); background:rgba(255,182,72,0.12); padding:1px 6px; border-radius:6px; vertical-align:middle;}
+
+  .lb-head{display:grid; grid-template-columns:30px 1.7fr 1fr 100px; gap:14px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); padding-bottom:9px; border-bottom:1px solid var(--card-border); margin-bottom:2px;}
+
+  footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11.5px; color:var(--text-faint);}
+
+  @media (max-width: 980px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .insight-grid{grid-template-columns:1fr;}
+    .col-8,.col-7,.col-6,.col-5,.col-4{grid-column:span 12;}
+  }
+  @media (max-width: 560px){
+    .kpi-grid{grid-template-columns:1fr;}
+    header{flex-direction:column; align-items:flex-start;}
+  }
+
+  .fade-in{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ---------- Filter bar ---------- */
+  .filter-bar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:14px 18px; margin-bottom:30px;
+  }
+  .filter-label{font-size:13px; font-weight:600; color:var(--text-dim); display:flex; align-items:center; gap:8px; white-space:nowrap;}
+  .country-select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background:rgba(255,255,255,0.06) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' stroke='%2393a0b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 13px center;
+    background-size:12px;
+    border:1px solid var(--card-border); color:var(--text); font-family:'Inter',system-ui,sans-serif; font-weight:600; font-size:13.5px;
+    padding:9px 38px 9px 14px; border-radius:10px; cursor:pointer; min-width:230px;
+    transition:border-color .2s;
+  }
+  .country-select:hover{border-color:rgba(255,255,255,0.25);}
+  .country-select:focus{outline:none; border-color:var(--accent-a);}
+  .country-select option{background:#10131f; color:var(--text);}
+  .filter-sub{font-size:12.5px; color:var(--text-faint); margin-left:auto; font-family:'JetBrains Mono', monospace;}
+  .market-note{font-size:12.5px; color:var(--text-dim); margin-top:14px; padding-top:13px; border-top:1px solid rgba(255,255,255,0.06); min-height:16px;}
+  .market-note b{color:var(--text);}
+
+  @media (max-width:680px){
+    .filter-bar{flex-direction:column; align-items:flex-start;}
+    .filter-sub{margin-left:0;}
+    .country-select{width:100%;}
+  }
+
+  /* ---------- Top banner (full-bleed letterhead) ---------- */
+  .top-banner{
+    width:100%;
+    background:linear-gradient(120deg, #07142a 0%, #0b2347 55%, #0c2c52 100%);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:26px clamp(20px, 5vw, 64px);
+    display:flex; align-items:center;
+  }
+  .bb-mark{width:50px; height:50px; flex:none;}
+  .bb-divider{width:1px; height:40px; background:rgba(255,255,255,0.22); margin:0 22px; flex:none;}
+  .bb-word{font-size:26px; font-weight:700; letter-spacing:-0.01em; line-height:1; font-family:'Inter',system-ui,sans-serif;}
+  .bb-true{color:#f4f7fc;}
+  .bb-north{color:#6fa3e3;}
+  .bb-data{display:flex; align-items:center; gap:9px; margin-top:8px;}
+  .bb-rule{width:28px; height:1px; background:rgba(255,255,255,0.32); flex:none;}
+  .bb-label{font-size:11.5px; font-weight:600; letter-spacing:0.24em; color:#b9cbe6;}
+  @media (max-width:560px){
+    .top-banner{padding:18px 18px;}
+    .bb-mark{width:38px; height:38px;}
+    .bb-divider{margin:0 14px;}
+    .bb-word{font-size:20px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="top-banner fade-in">
+  <svg class="bb-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+    <path d="M32 9 L45 47 L32 39 Z" fill="#eef3fb"/>
+    <path d="M32 9 L19 47 L32 39 Z" fill="#4f86d8"/>
+  </svg>
+  <div class="bb-divider"></div>
+  <div>
+    <div class="bb-word"><span class="bb-true">True</span><span class="bb-north">North</span></div>
+    <div class="bb-data"><span class="bb-rule"></span><span class="bb-label">DATA</span><span class="bb-rule"></span></div>
+  </div>
+</div>
+
+<div class="page-content">
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">☕</div>
+      <div>
+        <h1>US Coffee Shop Performance Dashboard</h1>
+        <div class="sub">Transaction-level sales data &middot; 1 Jan 2023 &ndash; 30 Jun 2023</div>
+      </div>
+    </div>
+    <div class="meta-pills">
+      <div class="pill"><span class="dot"></span> <b>149,116</b> orders logged</div>
+      <div class="pill">📦 <b>80</b> SKUs sold</div>
+      <div class="pill">🗓️ 181 days of activity</div>
+    </div>
+  </header>
+
+  <div class="filter-bar fade-in">
+    <div class="filter-label">🔎 Filter by category</div>
+    <select id="categoryFilter" class="country-select"></select>
+    <div class="filter-sub" id="filterSub">All 9 categories &middot; 149,116 orders &middot; $698,812 total revenue</div>
+  </div>
+
+  <div class="section-label fade-in">Headline metrics</div>
+  <div class="kpi-grid fade-in">
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Total Revenue</span><span class="kpi-icon">💰</span></div>
+      <div class="kpi-value" id="kpi-revenue">$0</div>
+      <div class="kpi-foot" id="kpi-revenue-foot">Across 149,116 orders</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Total Orders</span><span class="kpi-icon">🧾</span></div>
+      <div class="kpi-value" id="kpi-orders">0</div>
+      <div class="kpi-foot" id="kpi-orders-foot">~824 orders / day avg</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Items Sold</span><span class="kpi-icon">🥤</span></div>
+      <div class="kpi-value" id="kpi-units">0</div>
+      <div class="kpi-foot" id="kpi-units-foot">1.44 items per order avg</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Avg Order Value</span><span class="kpi-icon">📊</span></div>
+      <div class="kpi-value" id="kpi-aov">$0</div>
+      <div class="kpi-foot" id="kpi-aov-foot">Median order: $3.75</div>
+    </div>
+  </div>
+
+  <div class="insight-grid fade-in" style="margin-top:16px;">
+    <div class="insight-card">
+      <div class="insight-emoji">📈</div>
+      <div>
+        <div class="insight-title">Sales nearly doubled in H1</div>
+        <div class="insight-text">Revenue grew from <b>$81.7K</b> in January to <b>$166.5K</b> in June &mdash; up <b>+103.8%</b> over six months, including <b>+6.2%</b> month-over-month in June.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-emoji">☕</div>
+      <div>
+        <div class="insight-title">Coffee and tea drive two-thirds of sales</div>
+        <div class="insight-text"><b>Coffee</b> ($270K) and <b>Tea</b> ($196K) together make up <b>66.7%</b> of revenue, with Bakery a distant third at <b>11.8%</b>.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-emoji">⏰</div>
+      <div>
+        <div class="insight-title">The morning rush is king</div>
+        <div class="insight-text">The <b>7&ndash;10am</b> rush accounts for <b>45.8%</b> of all revenue, peaking at <b>10am</b> with <b>$88.7K</b> across 18,545 orders.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Revenue trend</div>
+  <div class="grid-12">
+    <div class="card col-8">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Monthly Revenue &amp; Orders</div>
+          <div class="card-note">Jan&ndash;Jun 2023 &middot; steady month-over-month growth</div>
+        </div>
+        <div class="legend-chip">📊 Revenue (bars) &middot; Orders (line)</div>
+      </div>
+      <div class="chart-box h-300"><canvas id="chartMonthly"></canvas></div>
+    </div>
+    <div class="card col-4">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Revenue by Category</div>
+          <div class="card-note">Share of total revenue</div>
+        </div>
+      </div>
+      <div class="chart-box h-230"><canvas id="chartCategory"></canvas></div>
+      <div class="cat-legend" id="catLegend"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Daypart &amp; menu mix</div>
+  <div class="grid-12">
+    <div class="card col-5">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Order Size Mix</div>
+          <div class="card-note">Revenue by drink size &amp; menu type</div>
+        </div>
+      </div>
+      <div class="split-labels"><span>☕ Sized drinks (Sm/Rg/Lg) &middot; <b>70.1%</b></span><span><b>29.9%</b> &middot; Bakery &amp; packaged</span></div>
+      <div class="split-bar"><div class="split-uk" style="width:70.1%"></div><div class="split-intl" style="width:29.9%"></div></div>
+      <div class="chart-box h-230" style="margin-top:18px;"><canvas id="chartSize"></canvas></div>
+      <div class="market-note">Large pours average <b>$5.30</b>/order &mdash; 59% more than Small (<b>$3.33</b>), the clearest upsell signal on the menu.</div>
+    </div>
+    <div class="card col-7">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Orders by Hour of Day</div>
+          <div class="card-note">Counter open 6am&ndash;8pm &middot; 10am is the daily peak</div>
+        </div>
+      </div>
+      <div class="chart-box h-260"><canvas id="chartHour"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label">Top products</div>
+  <div class="grid-12">
+    <div class="card col-12">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Top 8 Products by Revenue</div>
+          <div class="card-note">Includes drink size variants (Sm/Rg/Lg)</div>
+        </div>
+      </div>
+      <div class="lb-head"><span>#</span><span>Product</span><span>Revenue share</span><span style="text-align:right;">Revenue</span></div>
+      <div id="productList"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Source: coffee_shop_clean.csv &middot; 149,116 transactions</span>
+    <span>Generated 21 June 2026</span>
+  </footer>
+</div>
+</div>
+
+<script>
+const DATA = {
+  "summary": {
+    "total_revenue": 698812.33, "n_orders": 149116, "total_units": 214470, "n_products": 80,
+    "aov": 4.686367190643527, "median_order": 3.75, "items_per_order": 1.438518,
+    "date_start": "2023-01-01", "date_end": "2023-06-30",
+    "avg_orders_per_day": 823.8453038674033,
+    "sized_pct": 70.1, "unsized_pct": 29.9
+  },
+  "monthly": [
+    {"month":"2023-01","revenue":81677.74,"orders":17314},
+    {"month":"2023-02","revenue":76145.19,"orders":16359},
+    {"month":"2023-03","revenue":98834.68,"orders":21229},
+    {"month":"2023-04","revenue":118941.08,"orders":25335},
+    {"month":"2023-05","revenue":156727.76,"orders":33527},
+    {"month":"2023-06","revenue":166485.88,"orders":35352}
+  ],
+  "category": [
+    {"category":"Coffee","revenue":269952.45,"orders":58416,"pct":38.6},
+    {"category":"Tea","revenue":196405.95,"orders":45449,"pct":28.1},
+    {"category":"Bakery","revenue":82315.64,"orders":22796,"pct":11.8},
+    {"category":"Drinking Chocolate","revenue":72416.00,"orders":11468,"pct":10.4},
+    {"category":"Coffee beans","revenue":40085.25,"orders":1753,"pct":5.7},
+    {"category":"Branded","revenue":13607.00,"orders":747,"pct":1.9},
+    {"category":"Loose Tea","revenue":11213.60,"orders":1210,"pct":1.6},
+    {"category":"Flavours","revenue":8408.80,"orders":6790,"pct":1.2},
+    {"category":"Packaged Chocolate","revenue":4407.64,"orders":487,"pct":0.6}
+  ],
+  "hour": [
+    {"hour":6,"revenue":21900.27,"orders":4594},
+    {"hour":7,"revenue":63526.47,"orders":13428},
+    {"hour":8,"revenue":82699.87,"orders":17654},
+    {"hour":9,"revenue":85169.53,"orders":17764},
+    {"hour":10,"revenue":88673.39,"orders":18545},
+    {"hour":11,"revenue":46319.14,"orders":9766},
+    {"hour":12,"revenue":40192.79,"orders":8708},
+    {"hour":13,"revenue":40367.45,"orders":8714},
+    {"hour":14,"revenue":41304.74,"orders":8933},
+    {"hour":15,"revenue":41733.10,"orders":8979},
+    {"hour":16,"revenue":41122.75,"orders":9093},
+    {"hour":17,"revenue":40134.31,"orders":8745},
+    {"hour":18,"revenue":34286.20,"orders":7498},
+    {"hour":19,"revenue":28446.68,"orders":6092},
+    {"hour":20,"revenue":2935.64,"orders":603}
+  ],
+  "sizes": [
+    {"label":"Lg","revenue":237958.15,"orders":44885,"units":68540},
+    {"label":"Food & Packaged","revenue":214690.13,"orders":44518,"units":54321},
+    {"label":"Rg","revenue":199761.35,"orders":45789,"units":70186},
+    {"label":"Sm","revenue":46402.70,"orders":13924,"units":21423}
+  ],
+  "products": [
+    {"code":"61","desc":"Sustainably Grown Organic Lg","revenue":21151.75,"units":4453,"orders":2961},
+    {"code":"59","desc":"Dark chocolate Lg","revenue":21006.00,"units":4668,"orders":3029},
+    {"code":"39","desc":"Latte Rg","revenue":19112.25,"units":4497,"orders":2896},
+    {"code":"41","desc":"Cappuccino Lg","revenue":17641.75,"units":4151,"orders":2772},
+    {"code":"55","desc":"Morning Sunrise Chai Lg","revenue":17384.00,"units":4346,"orders":2830},
+    {"code":"38","desc":"Latte","revenue":17257.50,"units":4602,"orders":2990},
+    {"code":"36","desc":"Jamaican Coffee River Lg","revenue":16481.25,"units":4395,"orders":2911},
+    {"code":"60","desc":"Sustainably Grown Organic Rg","revenue":16233.75,"units":4329,"orders":2842}
+  ]
+};
+
+const fmtUSD = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmtUSD2 = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => n.toLocaleString('en-US');
+const fmtCompact = n => '$' + Math.round(n/1000) + 'K';
+
+/* ============================================================
+   STEP 1 — Render all plain-DOM content first (KPI numbers,
+   category legend, product leaderboard). None of this depends
+   on Chart.js, so it always renders even if the chart library
+   fails to load from its CDN.
+   ============================================================ */
+function countUp(el, target, isCurrency, suffix){
+  const dur = 900; const start = performance.now();
+  function tick(now){
+    const p = Math.min((now-start)/dur, 1);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = target * eased;
+    el.textContent = (isCurrency ? fmtUSD(val) : fmtInt(Math.round(val))) + (suffix||'');
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+countUp(document.getElementById('kpi-revenue'), DATA.summary.total_revenue, true);
+countUp(document.getElementById('kpi-orders'), DATA.summary.n_orders, false);
+countUp(document.getElementById('kpi-units'), DATA.summary.total_units, false);
+document.getElementById('kpi-aov').textContent = fmtUSD2(DATA.summary.aov);
+
+/* ---------------- Category filter (functional) ---------------- */
+const catSelect = document.getElementById('categoryFilter');
+const filterSub = document.getElementById('filterSub');
+const optAll = document.createElement('option');
+optAll.value = 'all';
+optAll.textContent = `All ${DATA.category.length} categories`;
+catSelect.appendChild(optAll);
+DATA.category.forEach(c => {
+  const o = document.createElement('option');
+  o.value = c.category; o.textContent = c.category;
+  catSelect.appendChild(o);
+});
+function updateFilterSub(){
+  if(catSelect.value === 'all'){
+    filterSub.textContent = `All ${DATA.category.length} categories · ${fmtInt(DATA.summary.n_orders)} orders · ${fmtUSD(DATA.summary.total_revenue)} total revenue`;
+  } else {
+    const c = DATA.category.find(x => x.category === catSelect.value);
+    filterSub.textContent = `${c.category} · ${fmtInt(c.orders)} orders · ${fmtUSD(c.revenue)} revenue (${c.pct}% of total)`;
+  }
+}
+catSelect.addEventListener('change', updateFilterSub);
+updateFilterSub();
+
+const monthLabels = DATA.monthly.map(d => {
+  const [y,m] = d.month.split('-');
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[parseInt(m,10)-1] + " '" + y.slice(2);
+});
+
+const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc','#94a3b8'];
+const topCats = DATA.category.slice(0,7);
+const otherPct = DATA.category.slice(7).reduce((s,d)=>s+d.pct,0);
+const otherRev = DATA.category.slice(7).reduce((s,d)=>s+d.revenue,0);
+const catLabels = [...topCats.map(d=>d.category), 'Other (2 categories)'];
+const catValues = [...topCats.map(d=>d.revenue), otherRev];
+const catPcts = [...topCats.map(d=>d.pct), Math.round(otherPct*10)/10];
+
+const legendEl = document.getElementById('catLegend');
+catLabels.forEach((label, i) => {
+  const row = document.createElement('div');
+  row.className = 'cat-row';
+  row.innerHTML = `<span class="cat-swatch" style="background:${catColors[i]}"></span><span class="cat-name">${label}</span><span class="cat-pct">${catPcts[i]}%</span>`;
+  legendEl.appendChild(row);
+});
+
+const prodList = document.getElementById('productList');
+const maxRev = Math.max(...DATA.products.map(p=>p.revenue));
+DATA.products.forEach((p, i) => {
+  const pct = (p.revenue / maxRev) * 100;
+  const row = document.createElement('div');
+  row.className = 'lb-row';
+  row.innerHTML = `
+    <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
+    <div>
+      <div class="lb-name">${p.desc}</div>
+      <div class="lb-code">#${p.code} &middot; ${fmtInt(p.units)} units &middot; ${fmtInt(p.orders)} orders</div>
+    </div>
+    <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+    <div>
+      <div class="lb-value">${fmtUSD(p.revenue)}</div>
+      <div class="lb-sub">${((p.revenue/DATA.summary.total_revenue)*100).toFixed(1)}% of revenue</div>
+    </div>
+  `;
+  prodList.appendChild(row);
+});
+
+/* ============================================================
+   STEP 2 — Charts. Guarded so a CDN hiccup can't blank the rest
+   of the page; each chart is also wrapped individually so one
+   bad render doesn't take the others down with it.
+   ============================================================ */
+function showChartFallback(canvas, msg){
+  const box = canvas.closest('.chart-box');
+  if(box) box.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5e6b85;font-size:12px;text-align:center;padding:0 20px;">${msg}</div>`;
+}
+
+if (typeof Chart === 'undefined') {
+  document.querySelectorAll('canvas').forEach(c => showChartFallback(c, 'Chart library failed to load — check your internet connection and reload.'));
+} else {
+
+Chart.defaults.color = '#93a0b8';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11.5;
+
+/* ---------------- Monthly combo chart ---------------- */
+try {
+new Chart(document.getElementById('chartMonthly'), {
+  data: {
+    labels: monthLabels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Revenue',
+        data: DATA.monthly.map(d => d.revenue),
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,260);
+          g.addColorStop(0, 'rgba(139,107,255,0.95)');
+          g.addColorStop(1, 'rgba(41,214,232,0.35)');
+          return g;
+        },
+        borderRadius: 6,
+        yAxisID: 'y',
+        order: 2
+      },
+      {
+        type: 'line',
+        label: 'Orders',
+        data: DATA.monthly.map(d => d.orders),
+        borderColor: '#ff7ab8',
+        backgroundColor: '#ff7ab8',
+        pointRadius: 3,
+        pointBackgroundColor: '#ff7ab8',
+        tension: 0.35,
+        yAxisID: 'y1',
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode:'index', intersect:false},
+    plugins: {
+      legend: {display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks: {
+          label: (c) => c.dataset.label === 'Revenue' ? '  Revenue: ' + fmtUSD(c.raw) : '  Orders: ' + fmtInt(c.raw)
+        }
+      }
+    },
+    scales: {
+      x: {grid:{display:false}},
+      y: {position:'left', grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtCompact(v)}},
+      y1: {position:'right', grid:{display:false}, ticks:{callback:(v)=>fmtInt(v)}}
+    }
+  }
+});
+} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Category doughnut ---------------- */
+try {
+new Chart(document.getElementById('chartCategory'), {
+  type: 'doughnut',
+  data: {
+    labels: catLabels,
+    datasets: [{ data: catValues, backgroundColor: catColors, borderColor: '#0a0e17', borderWidth:3, hoverOffset:6 }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false, cutout:'68%',
+    plugins: {
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtUSD(c.raw) + ' (' + catPcts[c.dataIndex] + '%)' }
+      }
+    }
+  }
+});
+} catch(e) { console.error('Category chart failed:', e); showChartFallback(document.getElementById('chartCategory'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Size / menu-type bar ---------------- */
+try {
+new Chart(document.getElementById('chartSize'), {
+  type: 'bar',
+  data: {
+    labels: DATA.sizes.map(d=>d.label),
+    datasets: [{
+      data: DATA.sizes.map(d=>d.revenue),
+      backgroundColor: '#29d6e8',
+      borderRadius: 5,
+      barThickness: 14
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtUSD(c.raw) }
+      }
+    },
+    scales: {
+      x: {grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtCompact(v)}},
+      y: {grid:{display:false}}
+    }
+  }
+});
+} catch(e) { console.error('Size chart failed:', e); showChartFallback(document.getElementById('chartSize'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Orders by hour bar ---------------- */
+try {
+function hourLabel(h){
+  if(h === 12) return '12p';
+  return h > 12 ? (h-12) + 'p' : h + 'a';
+}
+new Chart(document.getElementById('chartHour'), {
+  type: 'bar',
+  data: {
+    labels: DATA.hour.map(d=>hourLabel(d.hour)),
+    datasets: [{
+      data: DATA.hour.map(d=>d.orders),
+      backgroundColor: DATA.hour.map(d=> d.hour===10 ? '#ff7ab8' : 'rgba(139,107,255,0.75)'),
+      borderRadius: 7,
+      maxBarThickness: 40
+    }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtInt(c.raw) + ' orders' }
+      }
+    },
+    scales: {
+      x: {grid:{display:false}},
+      y: {grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtInt(v)}}
+    }
+  }
+});
+} catch(e) { console.error('Hour chart failed:', e); showChartFallback(document.getElementById('chartHour'), 'Couldn\'t render this chart.'); }
+
+} // end Chart-available guard
+</script>
+</body>
+</html>
