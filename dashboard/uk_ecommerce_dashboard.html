@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UK E-Commerce Performance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #090c14;
+    --bg-glow-1: #1b1042;
+    --bg-glow-2: #062430;
+    --card: rgba(255,255,255,0.035);
+    --card-border: rgba(255,255,255,0.09);
+    --card-hover: rgba(255,255,255,0.06);
+    --text: #f3f5fa;
+    --text-dim: #93a0b8;
+    --text-faint: #5e6b85;
+    --accent-a: #8b6bff;
+    --accent-b: #29d6e8;
+    --accent-c: #ff7ab8;
+    --accent-d: #ffb648;
+    --accent-e: #4ee69a;
+    --good: #4ee69a;
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 8% 0%, var(--bg-glow-1) 0%, transparent 45%),
+      radial-gradient(circle at 95% 12%, var(--bg-glow-2) 0%, transparent 40%),
+      radial-gradient(circle at 50% 100%, #150b28 0%, transparent 55%),
+      var(--bg);
+  }
+  .page-content{padding: 36px clamp(16px, 4vw, 56px) 64px;}
+  .wrap{max-width:1320px; margin:0 auto;}
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    flex-wrap:wrap; margin-bottom:30px; padding-bottom:22px;
+    border-bottom:1px solid var(--card-border);
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .mark{
+    width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    font-size:22px; box-shadow:0 8px 24px -8px rgba(139,107,255,0.65);
+  }
+  h1{font-size:25px; font-weight:800; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:13.5px; margin-top:3px;}
+  .meta-pills{display:flex; gap:10px; flex-wrap:wrap;}
+  .pill{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--text-dim);
+    background:var(--card); border:1px solid var(--card-border); padding:7px 13px; border-radius:999px;
+  }
+  .pill b{color:var(--text); font-weight:700;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--accent-e); box-shadow:0 0 8px var(--accent-e);}
+
+  /* ---------- Section labels ---------- */
+  .section-label{
+    font-size:11.5px; font-weight:700; letter-spacing:0.11em; text-transform:uppercase;
+    color:var(--text-faint); margin:38px 0 14px; display:flex; align-items:center; gap:10px;
+  }
+  .section-label::after{content:""; flex:1; height:1px; background:var(--card-border);}
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;}
+  .kpi-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:20px 22px; position:relative; overflow:hidden; transition:transform .25s, border-color .25s;
+  }
+  .kpi-card::before{
+    content:""; position:absolute; inset:0; opacity:0; transition:opacity .3s;
+    background:linear-gradient(135deg, rgba(139,107,255,0.14), transparent 60%);
+  }
+  .kpi-card:hover{transform:translateY(-3px); border-color:rgba(255,255,255,0.18);}
+  .kpi-card:hover::before{opacity:1;}
+  .kpi-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .kpi-label{font-size:12.5px; color:var(--text-dim); font-weight:600;}
+  .kpi-icon{font-size:17px; opacity:0.85;}
+  .kpi-value{font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-top:10px; font-family:'JetBrains Mono', monospace;}
+  .kpi-foot{font-size:12px; color:var(--text-faint); margin-top:7px; display:flex; align-items:center; gap:6px;}
+  .kpi-foot.up{color:var(--good);}
+
+  /* ---------- Insight chips ---------- */
+  .insight-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;}
+  .insight-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:16px 18px; display:flex; gap:13px; align-items:flex-start;
+  }
+  .insight-emoji{
+    width:34px; height:34px; min-width:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; background:rgba(255,255,255,0.05);
+  }
+  .insight-title{font-size:13px; font-weight:700; margin-bottom:3px;}
+  .insight-text{font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+  .insight-text b{color:var(--text); font-weight:700;}
+
+  /* ---------- Chart grid ---------- */
+  .grid-12{display:grid; grid-template-columns:repeat(12, 1fr); gap:16px;}
+  .card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:22px 24px;
+  }
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:12px; flex-wrap:wrap;}
+  .card-title{font-size:14.5px; font-weight:700;}
+  .card-note{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .legend-chip{font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.05); color:var(--text-dim); display:flex; align-items:center; gap:6px;}
+
+  .col-8{grid-column:span 8;} .col-7{grid-column:span 7;} .col-6{grid-column:span 6;}
+  .col-5{grid-column:span 5;} .col-4{grid-column:span 4;} .col-12{grid-column:span 12;}
+
+  .chart-box{position:relative; width:100%;}
+  .h-300{height:300px;} .h-260{height:260px;} .h-230{height:230px;}
+
+  /* ---------- Category legend list ---------- */
+  .cat-legend{display:flex; flex-direction:column; gap:11px; margin-top:14px;}
+  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .cat-swatch{width:9px; height:9px; border-radius:3px; flex:none;}
+  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cat-pct{font-weight:700; font-family:'JetBrains Mono', monospace; color:var(--text);}
+
+  /* ---------- Split bar (UK vs Intl) ---------- */
+  .split-bar{height:14px; border-radius:999px; overflow:hidden; display:flex; background:rgba(255,255,255,0.06); margin:14px 0 12px;}
+  .split-uk{background:linear-gradient(90deg, var(--accent-a), var(--accent-b));}
+  .split-intl{background:rgba(255,255,255,0.14);}
+  .split-labels{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+  .split-labels b{color:var(--text); font-family:'JetBrains Mono', monospace;}
+
+  /* ---------- Product leaderboard ---------- */
+  .lb-row{display:grid; grid-template-columns:30px 1.7fr 1fr 100px; align-items:center; gap:14px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05);}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-rank{font-family:'JetBrains Mono', monospace; font-weight:700; color:var(--text-faint); font-size:13px;}
+  .lb-name{font-size:13px; font-weight:600;}
+  .lb-code{font-size:11px; color:var(--text-faint); font-family:'JetBrains Mono', monospace; margin-top:2px;}
+  .lb-bar-track{height:7px; border-radius:999px; background:rgba(255,255,255,0.06); overflow:hidden;}
+  .lb-bar-fill{height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent-a), var(--accent-c));}
+  .lb-value{text-align:right; font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13px;}
+  .lb-sub{text-align:right; font-size:10.5px; color:var(--text-faint); margin-top:2px;}
+  .badge-solo{display:inline-block; margin-left:6px; font-size:9.5px; font-weight:700; color:var(--accent-d); background:rgba(255,182,72,0.12); padding:1px 6px; border-radius:6px; vertical-align:middle;}
+
+  .lb-head{display:grid; grid-template-columns:30px 1.7fr 1fr 100px; gap:14px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); padding-bottom:9px; border-bottom:1px solid var(--card-border); margin-bottom:2px;}
+
+  footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11.5px; color:var(--text-faint);}
+
+  @media (max-width: 980px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .insight-grid{grid-template-columns:1fr;}
+    .col-8,.col-7,.col-6,.col-5,.col-4{grid-column:span 12;}
+  }
+  @media (max-width: 560px){
+    .kpi-grid{grid-template-columns:1fr;}
+    header{flex-direction:column; align-items:flex-start;}
+  }
+
+  .fade-in{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ---------- Country filter bar ---------- */
+  .filter-bar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:14px 18px; margin-bottom:30px;
+  }
+  .filter-label{font-size:13px; font-weight:600; color:var(--text-dim); display:flex; align-items:center; gap:8px; white-space:nowrap;}
+  .country-select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background:rgba(255,255,255,0.06) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' stroke='%2393a0b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 13px center;
+    background-size:12px;
+    border:1px solid var(--card-border); color:var(--text); font-family:'Inter',system-ui,sans-serif; font-weight:600; font-size:13.5px;
+    padding:9px 38px 9px 14px; border-radius:10px; cursor:pointer; min-width:230px;
+    transition:border-color .2s;
+  }
+  .country-select:hover{border-color:rgba(255,255,255,0.25);}
+  .country-select:focus{outline:none; border-color:var(--accent-a);}
+  .country-select option{background:#10131f; color:var(--text);}
+  .filter-sub{font-size:12.5px; color:var(--text-faint); margin-left:auto; font-family:'JetBrains Mono', monospace;}
+  .market-note{font-size:12.5px; color:var(--text-dim); margin-top:14px; padding-top:13px; border-top:1px solid rgba(255,255,255,0.06); min-height:16px;}
+  .market-note b{color:var(--text);}
+
+  @media (max-width:680px){
+    .filter-bar{flex-direction:column; align-items:flex-start;}
+    .filter-sub{margin-left:0;}
+    .country-select{width:100%;}
+  }
+
+  /* ---------- Top banner (full-bleed letterhead) ---------- */
+  .top-banner{
+    width:100%;
+    background:linear-gradient(120deg, #07142a 0%, #0b2347 55%, #0c2c52 100%);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:26px clamp(20px, 5vw, 64px);
+    display:flex; align-items:center;
+  }
+  .bb-mark{width:50px; height:50px; flex:none;}
+  .bb-divider{width:1px; height:40px; background:rgba(255,255,255,0.22); margin:0 22px; flex:none;}
+  .bb-word{font-size:26px; font-weight:700; letter-spacing:-0.01em; line-height:1; font-family:'Inter',system-ui,sans-serif;}
+  .bb-true{color:#f4f7fc;}
+  .bb-north{color:#6fa3e3;}
+  .bb-data{display:flex; align-items:center; gap:9px; margin-top:8px;}
+  .bb-rule{width:28px; height:1px; background:rgba(255,255,255,0.32); flex:none;}
+  .bb-label{font-size:11.5px; font-weight:600; letter-spacing:0.24em; color:#b9cbe6;}
+  @media (max-width:560px){
+    .top-banner{padding:18px 18px;}
+    .bb-mark{width:38px; height:38px;}
+    .bb-divider{margin:0 14px;}
+    .bb-word{font-size:20px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="top-banner fade-in">
+  <svg class="bb-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+    <path d="M32 9 L45 47 L32 39 Z" fill="#eef3fb"/>
+    <path d="M32 9 L19 47 L32 39 Z" fill="#4f86d8"/>
+  </svg>
+  <div class="bb-divider"></div>
+  <div>
+    <div class="bb-word"><span class="bb-true">True</span><span class="bb-north">North</span></div>
+    <div class="bb-data"><span class="bb-rule"></span><span class="bb-label">DATA</span><span class="bb-rule"></span></div>
+  </div>
+</div>
+
+<div class="page-content">
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">🛒</div>
+      <div>
+        <h1>UK E-Commerce Performance Dashboard</h1>
+        <div class="sub">Order-level sales data &middot; 1 Dec 2010 &ndash; 9 Dec 2011</div>
+      </div>
+    </div>
+    <div class="meta-pills">
+      <div class="pill"><span class="dot"></span> <b>38</b> countries served</div>
+      <div class="pill">📦 <b>3,918</b> SKUs sold</div>
+      <div class="pill">🗓️ 13 months of activity</div>
+    </div>
+  </header>
+
+  <div class="filter-bar fade-in">
+    <div class="filter-label">🔎 Filter by country</div>
+    <select id="countryFilter" class="country-select"></select>
+    <div class="filter-sub" id="filterSub">All 38 countries &middot; 19,865 orders &middot; £10,539,531 total revenue</div>
+  </div>
+
+  <div class="section-label fade-in">Headline metrics</div>
+  <div class="kpi-grid fade-in">
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Total Revenue</span><span class="kpi-icon">💰</span></div>
+      <div class="kpi-value" id="kpi-revenue">£0</div>
+      <div class="kpi-foot" id="kpi-revenue-foot">Across 19,865 orders</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Total Orders</span><span class="kpi-icon">🧾</span></div>
+      <div class="kpi-value" id="kpi-orders">0</div>
+      <div class="kpi-foot" id="kpi-orders-foot">~53 orders / day avg</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Active Customers</span><span class="kpi-icon">👥</span></div>
+      <div class="kpi-value" id="kpi-customers">0</div>
+      <div class="kpi-foot up" id="kpi-customers-foot">65.5% are repeat buyers</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Avg Order Value</span><span class="kpi-icon">📊</span></div>
+      <div class="kpi-value" id="kpi-aov">£0</div>
+      <div class="kpi-foot" id="kpi-aov-foot">Median order: £303.20</div>
+    </div>
+  </div>
+
+  <div class="insight-grid fade-in" style="margin-top:16px;">
+    <div class="insight-card">
+      <div class="insight-emoji">🎯</div>
+      <div>
+        <div class="insight-title" id="insightConcTitle">Revenue is customer-concentrated</div>
+        <div class="insight-text" id="insightConcText">The top <b>20% of customers</b> (867 buyers) generate <b>78.7%</b> of total revenue — a classic wholesale long-tail pattern.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-emoji">🌍</div>
+      <div>
+        <div class="insight-title" id="insightGeoTitle">Mostly domestic, growing abroad</div>
+        <div class="insight-text" id="insightGeoText">The UK drives <b>84.8%</b> of revenue; the remaining <b>15.2%</b> is spread across 37 other countries, led by the Netherlands and Ireland.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-emoji">📈</div>
+      <div>
+        <div class="insight-title" id="insightPeakTitle">Strong seasonal peak</div>
+        <div class="insight-text" id="insightPeakText"><b>Nov '11</b> was the strongest month at <b>£1.50M</b>, up <b>+32.8%</b> month-over-month as holiday buying ramped up.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Revenue trend</div>
+  <div class="grid-12">
+    <div class="card col-8">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Monthly Revenue &amp; Orders</div>
+          <div class="card-note" id="monthlyCardNote">Dec 2011 is a partial month (data through Dec 9)</div>
+        </div>
+        <div class="legend-chip">📊 Revenue (bars) &middot; Orders (line)</div>
+      </div>
+      <div class="chart-box h-300"><canvas id="chartMonthly"></canvas></div>
+    </div>
+    <div class="card col-4">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Revenue by Category</div>
+          <div class="card-note" id="categoryCardNote">Share of total revenue</div>
+        </div>
+      </div>
+      <div class="chart-box h-230"><canvas id="chartCategory"></canvas></div>
+      <div class="cat-legend" id="catLegend"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Markets &amp; shopping patterns</div>
+  <div class="grid-12">
+    <div class="card col-5">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Domestic vs. International</div>
+          <div class="card-note">Top non-UK markets by revenue</div>
+        </div>
+      </div>
+      <div class="split-labels"><span>🇬🇧 United Kingdom &middot; <b>84.8%</b></span><span><b>15.2%</b> &middot; International</span></div>
+      <div class="split-bar"><div class="split-uk" style="width:84.8%"></div><div class="split-intl" style="width:15.2%"></div></div>
+      <div class="chart-box h-230" style="margin-top:18px;"><canvas id="chartCountry"></canvas></div>
+      <div class="market-note" id="marketNote"></div>
+    </div>
+    <div class="card col-7">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Orders by Day of Week</div>
+          <div class="card-note" id="dowCardNote">No transactions are recorded on Saturdays</div>
+        </div>
+      </div>
+      <div class="chart-box h-260"><canvas id="chartDow"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label">Top products</div>
+  <div class="grid-12">
+    <div class="card col-12">
+      <div class="card-head">
+        <div>
+          <div class="card-title" id="productsCardTitle">Top 8 Products by Revenue</div>
+          <div class="card-note" id="productsCardNote">Excludes postage / shipping line items</div>
+        </div>
+      </div>
+      <div class="lb-head"><span>#</span><span>Product</span><span>Revenue share</span><span style="text-align:right;">Revenue</span></div>
+      <div id="productList"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Source: uk_ecommerce_clean.csv &middot; 524,557 order lines</span>
+    <span>Generated 20 June 2026</span>
+  </footer>
+</div>
+</div>
+
+<script>
+const DATA = {
+  "summary": {
+    "total_revenue": 10539530.93, "n_orders": 19865, "n_customers": 4336, "n_countries": 38,
+    "n_products": 3918, "total_units": 5565430, "aov": 530.56, "median_order": 303.2,
+    "repeat_pct": 65.5, "top20pct_share": 78.7, "uk_pct": 84.8, "intl_pct": 15.2,
+    "date_start": "2010-12-01", "date_end": "2011-12-09"
+  },
+  "monthly": [
+    {"month":"2010-12","revenue":805431.14,"orders":1554},
+    {"month":"2011-01","revenue":689714.71,"orders":1084},
+    {"month":"2011-02","revenue":521308.11,"orders":1094},
+    {"month":"2011-03","revenue":707759.12,"orders":1444},
+    {"month":"2011-04","revenue":526859.99,"orders":1239},
+    {"month":"2011-05","revenue":764075.38,"orders":1672},
+    {"month":"2011-06","revenue":755619.13,"orders":1529},
+    {"month":"2011-07","revenue":706968.32,"orders":1457},
+    {"month":"2011-08","revenue":743467.28,"orders":1355},
+    {"month":"2011-09","revenue":1050346.10,"orders":1832},
+    {"month":"2011-10","revenue":1130075.06,"orders":2025},
+    {"month":"2011-11","revenue":1500554.36,"orders":2761},
+    {"month":"2011-12","revenue":637352.23,"orders":819}
+  ],
+  "category": [
+    {"category":"Kitchen & Dining","revenue":2464601.43,"pct":23.4},
+    {"category":"Home Decor","revenue":1814427.53,"pct":17.2},
+    {"category":"Bags & Accessories","revenue":1169885.46,"pct":11.1},
+    {"category":"Uncategorized","revenue":960108.47,"pct":9.1},
+    {"category":"Stationery & Craft","revenue":754841.70,"pct":7.2},
+    {"category":"Signage & Boards","revenue":689586.50,"pct":6.5},
+    {"category":"Christmas & Seasonal","revenue":524807.60,"pct":5.0},
+    {"category":"Bunting & Party","revenue":497074.47,"pct":4.7},
+    {"category":"Storage & Furniture","revenue":405165.59,"pct":3.8},
+    {"category":"Hot Water Bottles & Warmers","revenue":373404.42,"pct":3.5},
+    {"category":"Toys & Games","revenue":341176.90,"pct":3.2},
+    {"category":"Shipping & Fees","revenue":292601.65,"pct":2.8},
+    {"category":"Garden & Outdoor","revenue":132735.71,"pct":1.3},
+    {"category":"Bath & Linen","revenue":95481.97,"pct":0.9},
+    {"category":"Beauty & Personal Care","revenue":23631.53,"pct":0.2}
+  ],
+  "country": [
+    {"country":"Netherlands","revenue":285446.34,"orders":94,"pct":2.7},
+    {"country":"EIRE","revenue":276090.86,"orders":284,"pct":2.6},
+    {"country":"Germany","revenue":226382.15,"orders":451,"pct":2.1},
+    {"country":"France","revenue":200133.00,"orders":388,"pct":1.9},
+    {"country":"Australia","revenue":138453.81,"orders":57,"pct":1.3},
+    {"country":"Spain","revenue":61558.56,"orders":90,"pct":0.6},
+    {"country":"Switzerland","revenue":57067.60,"orders":54,"pct":0.5}
+  ],
+  "products": [
+    {"code":"22423","desc":"Regency Cakestand 3 Tier","revenue":174156.54,"units":13851,"orders":1988},
+    {"code":"23843","desc":"Paper Craft, Little Birdie","revenue":168469.60,"units":80995,"orders":1},
+    {"code":"85123A","desc":"White Hanging Heart T-Light Holder","revenue":104284.24,"units":37580,"orders":2189},
+    {"code":"47566","desc":"Party Bunting","revenue":99445.23,"units":18283,"orders":1685},
+    {"code":"85099B","desc":"Jumbo Bag Red Retrospot","revenue":94159.81,"units":48371,"orders":2089},
+    {"code":"23166","desc":"Medium Ceramic Top Storage Jar","revenue":81700.92,"units":78033,"orders":247},
+    {"code":"23084","desc":"Rabbit Night Light","revenue":66870.03,"units":30739,"orders":994},
+    {"code":"22086","desc":"Paper Chain Kit 50's Christmas","revenue":64875.59,"units":19329,"orders":1160}
+  ],
+  "dow": [
+    {"day":"Monday","orders":3093},{"day":"Tuesday","orders":3534},{"day":"Wednesday","orders":3682},
+    {"day":"Thursday","orders":4229},{"day":"Friday","orders":3124},{"day":"Saturday","orders":0},
+    {"day":"Sunday","orders":2203}
+  ]
+};
+
+const fmtGBP = n => '£' + Math.round(n).toLocaleString('en-GB');
+const fmtGBP2 = n => '£' + n.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => n.toLocaleString('en-GB');
+const fmtCompact = n => '£' + (n/1e6).toFixed(2) + 'M';
+
+/* ============================================================
+   STEP 1 — Render all plain-DOM content first (KPI numbers,
+   category legend, product leaderboard). None of this depends
+   on Chart.js, so it always renders even if the chart library
+   fails to load from its CDN.
+   ============================================================ */
+function countUp(el, target, isCurrency, suffix){
+  const dur = 900; const start = performance.now();
+  function tick(now){
+    const p = Math.min((now-start)/dur, 1);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = target * eased;
+    el.textContent = (isCurrency ? fmtGBP(val) : fmtInt(Math.round(val))) + (suffix||'');
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+countUp(document.getElementById('kpi-revenue'), DATA.summary.total_revenue, true);
+countUp(document.getElementById('kpi-orders'), DATA.summary.n_orders, false);
+countUp(document.getElementById('kpi-customers'), DATA.summary.n_customers, false);
+document.getElementById('kpi-aov').textContent = fmtGBP2(DATA.summary.aov);
+
+const monthLabels = DATA.monthly.map(d => {
+  const [y,m] = d.month.split('-');
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const label = names[parseInt(m,10)-1] + " '" + y.slice(2);
+  return d.month === '2011-12' ? label + '*' : label;
+});
+
+const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc','#94a3b8'];
+const topCats = DATA.category.slice(0,7);
+const otherPct = DATA.category.slice(7).reduce((s,d)=>s+d.pct,0);
+const otherRev = DATA.category.slice(7).reduce((s,d)=>s+d.revenue,0);
+const catLabels = [...topCats.map(d=>d.category), 'Other (8 categories)'];
+const catValues = [...topCats.map(d=>d.revenue), otherRev];
+const catPcts = [...topCats.map(d=>d.pct), Math.round(otherPct*10)/10];
+
+const legendEl = document.getElementById('catLegend');
+catLabels.forEach((label, i) => {
+  const row = document.createElement('div');
+  row.className = 'cat-row';
+  row.innerHTML = `<span class="cat-swatch" style="background:${catColors[i]}"></span><span class="cat-name">${label}</span><span class="cat-pct">${catPcts[i]}%</span>`;
+  legendEl.appendChild(row);
+});
+
+const prodList = document.getElementById('productList');
+const maxRev = Math.max(...DATA.products.map(p=>p.revenue));
+DATA.products.forEach((p, i) => {
+  const pct = (p.revenue / maxRev) * 100;
+  const row = document.createElement('div');
+  row.className = 'lb-row';
+  row.innerHTML = `
+    <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
+    <div>
+      <div class="lb-name">${p.desc}${p.orders === 1 ? '<span class="badge-solo">BULK ORDER</span>' : ''}</div>
+      <div class="lb-code">${p.code} &middot; ${fmtInt(p.units)} units &middot; ${fmtInt(p.orders)} order${p.orders===1?'':'s'}</div>
+    </div>
+    <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+    <div>
+      <div class="lb-value">${fmtGBP(p.revenue)}</div>
+      <div class="lb-sub">${((p.revenue/DATA.summary.total_revenue)*100).toFixed(1)}% of revenue</div>
+    </div>
+  `;
+  prodList.appendChild(row);
+});
+
+/* ============================================================
+   STEP 2 — Charts. Guarded so a CDN hiccup can't blank the rest
+   of the page; each chart is also wrapped individually so one
+   bad render doesn't take the others down with it.
+   ============================================================ */
+function showChartFallback(canvas, msg){
+  const box = canvas.closest('.chart-box');
+  if(box) box.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5e6b85;font-size:12px;text-align:center;padding:0 20px;">${msg}</div>`;
+}
+
+if (typeof Chart === 'undefined') {
+  document.querySelectorAll('canvas').forEach(c => showChartFallback(c, 'Chart library failed to load — check your internet connection and reload.'));
+} else {
+
+Chart.defaults.color = '#93a0b8';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11.5;
+
+/* ---------------- Monthly combo chart ---------------- */
+try {
+new Chart(document.getElementById('chartMonthly'), {
+  data: {
+    labels: monthLabels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Revenue',
+        data: DATA.monthly.map(d => d.revenue),
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,260);
+          g.addColorStop(0, 'rgba(139,107,255,0.95)');
+          g.addColorStop(1, 'rgba(41,214,232,0.35)');
+          return g;
+        },
+        borderRadius: 6,
+        yAxisID: 'y',
+        order: 2
+      },
+      {
+        type: 'line',
+        label: 'Orders',
+        data: DATA.monthly.map(d => d.orders),
+        borderColor: '#ff7ab8',
+        backgroundColor: '#ff7ab8',
+        pointRadius: 3,
+        pointBackgroundColor: '#ff7ab8',
+        tension: 0.35,
+        yAxisID: 'y1',
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode:'index', intersect:false},
+    plugins: {
+      legend: {display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks: {
+          label: (c) => c.dataset.label === 'Revenue' ? '  Revenue: ' + fmtGBP(c.raw) : '  Orders: ' + fmtInt(c.raw)
+        }
+      }
+    },
+    scales: {
+      x: {grid:{display:false}},
+      y: {position:'left', grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtCompact(v)}},
+      y1: {position:'right', grid:{display:false}, ticks:{callback:(v)=>fmtInt(v)}}
+    }
+  }
+});
+} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Category doughnut ---------------- */
+try {
+new Chart(document.getElementById('chartCategory'), {
+  type: 'doughnut',
+  data: {
+    labels: catLabels,
+    datasets: [{ data: catValues, backgroundColor: catColors, borderColor: '#0a0e17', borderWidth:3, hoverOffset:6 }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false, cutout:'68%',
+    plugins: {
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtGBP(c.raw) + ' (' + catPcts[c.dataIndex] + '%)' }
+      }
+    }
+  }
+});
+} catch(e) { console.error('Category chart failed:', e); showChartFallback(document.getElementById('chartCategory'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Country bar ---------------- */
+try {
+new Chart(document.getElementById('chartCountry'), {
+  type: 'bar',
+  data: {
+    labels: DATA.country.map(d=>d.country),
+    datasets: [{
+      data: DATA.country.map(d=>d.revenue),
+      backgroundColor: '#29d6e8',
+      borderRadius: 5,
+      barThickness: 14
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtGBP(c.raw) }
+      }
+    },
+    scales: {
+      x: {grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtCompact(v)}},
+      y: {grid:{display:false}}
+    }
+  }
+});
+} catch(e) { console.error('Country chart failed:', e); showChartFallback(document.getElementById('chartCountry'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Day of week bar ---------------- */
+try {
+new Chart(document.getElementById('chartDow'), {
+  type: 'bar',
+  data: {
+    labels: DATA.dow.map(d=>d.day.slice(0,3)),
+    datasets: [{
+      data: DATA.dow.map(d=>d.orders),
+      backgroundColor: DATA.dow.map(d=> d.day==='Thursday' ? '#ff7ab8' : 'rgba(139,107,255,0.75)'),
+      borderRadius: 7,
+      maxBarThickness: 56
+    }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtInt(c.raw) + ' orders' }
+      }
+    },
+    scales: {
+      x: {grid:{display:false}},
+      y: {grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtInt(v)}}
+    }
+  }
+});
+} catch(e) { console.error('Day-of-week chart failed:', e); showChartFallback(document.getElementById('chartDow'), 'Couldn\'t render this chart.'); }
+
+} // end Chart-available guard
+</script>
+</body>
+</html>
