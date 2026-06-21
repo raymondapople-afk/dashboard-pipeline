@@ -74,17 +74,39 @@ only knows the standard schema above. To onboard a new client:
      (e.g. `product_category: category`) and leave `category_rules` empty —
      `transform.py` passes through an already-populated `category` column
      rather than overwriting it with keyword derivation.
+   - `sum_columns` — for a standard field that's the sum of two or more raw
+     columns rather than one (e.g. nights stayed = weekend nights + week
+     nights). Maps the standard field name to a list of raw source columns.
+   - `synthesize_order_id` — set to `true` if the export has no primary key
+     column at all. `order_id` is generated from row position so order-count
+     aggregations (`nunique(order_id)`) still work correctly.
+   - `exclude_rows` — generalized row filtering by column value (e.g.
+     `[{column: is_canceled, equals: "1"}]`), for clients whose
+     cancellation/void signal is a column value rather than an `order_id`
+     prefix like `cancellation_prefix` expects.
+   - `drop_duplicates` — defaults to `true`. Set to `false` if the export has
+     no primary key and exact-duplicate rows can't be told apart from two
+     genuinely distinct records that happen to share every attribute —
+     blanket-dropping in that case risks silently discarding real revenue.
 3. Run:
    ```
    python -m pipeline.run --client <new_client> --input data/raw/<their_file>.csv
    ```
 
 No changes to `pipeline/*.py` should be needed for a differently-shaped
-client CSV — confirmed by onboarding a second, structurally different
-dataset (`config/clients/coffee_shop.yaml`: split date/time columns, no
-customer or country columns at all, a real category column) using config
-changes alone, after the `encoding` / `date_columns` / `constants` config
-options and the category-passthrough fix above were added.
+client CSV — confirmed by onboarding a second and third, structurally
+different dataset:
+- `config/clients/coffee_shop.yaml`: split date/time columns, no customer or
+  country columns at all, a real category column (needed `encoding`,
+  `date_columns`, `constants`, and the category-passthrough fix).
+- `config/clients/hotel_bookings.yaml`: booking data with no primary key
+  column at all, a quantity that's the sum of two raw columns, and a
+  cancellation signal that's a column value rather than an `order_id`
+  prefix (needed `sum_columns`, `synthesize_order_id`, `exclude_rows`, and
+  `drop_duplicates`). Notably, `transform.py` itself needed **zero** changes
+  for this client — its revenue formula (`quantity * unit_price`) already
+  was `adr × nights`; every gap was in how `ingest.py`/`clean.py` produce
+  and filter rows upstream of it.
 
 ## Notes on the coffee shop dataset
 
@@ -103,6 +125,31 @@ options and the category-passthrough fix above were added.
   `transaction_date` / `transaction_time` columns via `date_columns`) and
   shows a realistic coffee-shop morning rush (peak 06:00–10:00), unlike the
   UK retailer's midday peak.
+
+## Notes on the hotel bookings dataset
+
+- Booking/appointment data, not per-item sales: `revenue = adr × nights
+  stayed`, where `nights` is `sum_columns`-derived from
+  `stays_in_weekend_nights + stays_in_week_nights`.
+- No primary key column exists in this export at all — `order_id` is
+  synthesized from row position (`synthesize_order_id`). No customer
+  identity column either — `customer_id` is `"GUEST"` via `constants`, same
+  as the coffee shop client. `customer_trends.json` is degenerate here too.
+- Cancellations/no-shows (`is_canceled == "1"`, ~37% of rows) are excluded
+  entirely via `exclude_rows`, consistent with how the other two clients
+  handle returns/cancellations — but expressed as a column-value match
+  rather than an `order_id` prefix, since this export has no such prefix.
+- `drop_duplicates: false` — 27% of rows are exact duplicates across every
+  column, but with no primary key there's no way to confirm whether that's
+  a real data-entry error or two distinct bookings that happen to share
+  every attribute. Blanket-dropping them (like the other two clients do)
+  would risk silently discarding real revenue, so this client keeps them.
+- `hour` is `0` for every row — this export captures only an arrival
+  *date*, no time-of-day at all. Unlike the coffee shop's split
+  date/time columns, this isn't fixable by combining columns; the data
+  simply doesn't capture it. A real data limitation, not a pipeline bug.
+- ~488 rows (0.4%) have the literal string `"NULL"` as `country` rather
+  than blank. Left as-is — not worth a structural fix for 0.4% of rows.
 
 ## Notes on this dataset (UK Online Retail)
 

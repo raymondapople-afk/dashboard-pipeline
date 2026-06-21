@@ -5,11 +5,18 @@ from pipeline.config import load_client_config
 from pipeline.ingest import load_raw
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_raw.csv"
+HOTEL_FIXTURE = Path(__file__).parent / "fixtures" / "sample_hotel_raw.csv"
 
 
 def _cleaned():
     config = load_client_config("uk_ecommerce")
     raw_df = load_raw(str(FIXTURE), config)
+    return clean(raw_df, config), config
+
+
+def _cleaned_hotel():
+    config = load_client_config("hotel_bookings")
+    raw_df = load_raw(str(HOTEL_FIXTURE), config)
     return clean(raw_df, config), config
 
 
@@ -43,3 +50,20 @@ def test_drops_excluded_descriptions():
 def test_remaining_row_count():
     df, _ = _cleaned()
     assert len(df) == 4
+
+
+def test_drop_duplicates_can_be_disabled_per_client():
+    df, _ = _cleaned_hotel()
+    assert (df["product_code"] == "A").sum() == 2  # duplicate pair both kept
+
+
+def test_exclude_rows_drops_matching_rows():
+    df, _ = _cleaned_hotel()
+    assert not df["product_code"].eq("D").any()  # the is_canceled=1 booking
+
+
+def test_hotel_remaining_row_count():
+    df, _ = _cleaned_hotel()
+    # 5 raw rows: 1 normal, 2 duplicate (kept), 1 canceled (dropped), 1
+    # zero-nights (dropped by the existing quantity > 0 filter)
+    assert len(df) == 3

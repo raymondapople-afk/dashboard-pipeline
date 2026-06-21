@@ -1,0 +1,56 @@
+# Client config: Hotel Booking Demand export
+# This is booking/appointment data, not per-item sales -- revenue is
+# adr (average daily rate) x nights stayed, not quantity x unit price of a
+# product, but it maps onto the same standard schema fields.
+
+encoding: "utf-8-sig"
+
+column_map:
+  reserved_room_type: product_code
+  hotel: product_desc          # only "Resort Hotel" / "City Hotel" -- thin
+                                # but valid; richer description would need
+                                # combining multiple text columns, not needed
+                                # to satisfy the standard schema
+  market_segment: category     # real category column, passed through as-is
+  adr: unit_price
+  country: country              # real column (guest's country of origin)
+
+# Date is split across three raw columns; arrival_date_month is a month name
+# ("July"), not a number. The existing date_columns join + date_format
+# mechanism (built for the coffee client) handles this with no code change --
+# confirmed pd.to_datetime(["2015 July 1"], format="%Y %B %d") parses fine.
+date_columns: [arrival_date_year, arrival_date_month, arrival_date_day_of_month]
+date_format: "%Y %B %d"
+
+# quantity = total nights stayed = sum of two raw columns, not one.
+sum_columns:
+  quantity: [stays_in_weekend_nights, stays_in_week_nights]
+
+# No booking ID column exists in this export at all -- synthesize one from
+# row position so order-count aggregations (nunique order_id) still work.
+synthesize_order_id: true
+
+# No customer identifier column either (anonymous booking records).
+constants:
+  customer_id: "GUEST"
+
+# order_id is a synthesized numeric string; this prefix can never match, so
+# no row is ever dropped via the prefix-based cancellation mechanism.
+cancellation_prefix: "__NONE__"
+
+# This dataset's cancellation signal is a column value (is_canceled == "1"),
+# not an order_id prefix like the UK data -- exclude these entirely, same
+# policy as the UK/coffee clients' cancellations/returns.
+exclude_rows:
+  - column: is_canceled
+    equals: "1"
+
+# 27% of rows are exact duplicates across every column, but there is no
+# booking ID to confirm whether that's a real data-entry error or two
+# different guests who happen to share every attribute. Unlike the UK/coffee
+# datasets, dropping these here would risk silently discarding real revenue.
+drop_duplicates: false
+
+# Not needed for this client -- category comes straight from market_segment.
+category_rules: []
+excluded_descriptions: []

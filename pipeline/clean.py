@@ -20,7 +20,12 @@ def clean(df: pd.DataFrame, config: ClientConfig) -> pd.DataFrame:
     # time-of-day information needed for traffic/shopping-pattern analysis.
     df["date"] = pd.to_datetime(df["date"], format=config.date_format, errors="coerce")
 
-    df = df.drop_duplicates()
+    # Exact-duplicate rows are unambiguous data-entry errors for clients with
+    # a real per-row identity, but not for clients with no primary key at all
+    # (e.g. bookings data, where two different bookings can legitimately share
+    # every attribute) -- skippable per client.
+    if config.drop_duplicates:
+        df = df.drop_duplicates()
 
     df = df[~df["order_id"].str.startswith(config.cancellation_prefix, na=False)]
     df = df[(df["quantity"] > 0) & (df["unit_price"] > 0)]
@@ -29,6 +34,11 @@ def clean(df: pd.DataFrame, config: ClientConfig) -> pd.DataFrame:
 
     excluded = {d.lower() for d in config.excluded_descriptions}
     df = df[~df["product_desc"].str.lower().isin(excluded)]
+
+    # Generalized row exclusion for clients whose cancellation/void signal is
+    # a column value rather than an order_id prefix (e.g. is_canceled == "1").
+    for rule in config.exclude_rows:
+        df = df[df[rule["column"]] != rule["equals"]]
 
     df["customer_id"] = df["customer_id"].replace("", "GUEST")
 

@@ -7,6 +7,7 @@ from pipeline.transform import transform
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_raw.csv"
 COFFEE_FIXTURE = Path(__file__).parent / "fixtures" / "sample_coffee_raw.csv"
+HOTEL_FIXTURE = Path(__file__).parent / "fixtures" / "sample_hotel_raw.csv"
 
 
 def _transformed():
@@ -19,6 +20,13 @@ def _transformed():
 def _transformed_coffee():
     config = load_client_config("coffee_shop")
     raw_df = load_raw(str(COFFEE_FIXTURE), config)
+    cleaned_df = clean(raw_df, config)
+    return transform(cleaned_df, config)
+
+
+def _transformed_hotel():
+    config = load_client_config("hotel_bookings")
+    raw_df = load_raw(str(HOTEL_FIXTURE), config)
     cleaned_df = clean(raw_df, config)
     return transform(cleaned_df, config)
 
@@ -59,3 +67,25 @@ def test_coffee_hour_combines_separate_date_and_time_columns():
     row = df[df["order_id"] == "3"].iloc[0]  # raw transaction_time 13:14:04
     assert row["hour"] == 13
     assert str(row["date"]) == "2023-01-02"
+
+
+def test_hotel_revenue_is_adr_times_total_nights():
+    # transform.py needed no changes for this -- revenue = quantity * unit_price
+    # already equals adr * nights once ingest.py derives quantity correctly.
+    df = _transformed_hotel()
+    row = df[df["product_code"] == "C"].iloc[0]  # adr=100, nights=0+3=3
+    assert row["quantity"] == 3
+    assert row["unit_price"] == 100
+    assert row["revenue"] == 300
+
+
+def test_hotel_category_passes_through_market_segment():
+    df = _transformed_hotel()
+    row = df[df["product_code"] == "C"].iloc[0]
+    assert row["category"] == "Direct"
+
+
+def test_hotel_hour_is_zero_with_no_time_of_day_data():
+    df = _transformed_hotel()
+    row = df[df["product_code"] == "C"].iloc[0]
+    assert row["hour"] == 0
