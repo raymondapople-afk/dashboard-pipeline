@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Bookings Performance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #090c14;
+    --bg-glow-1: #1b1042;
+    --bg-glow-2: #062430;
+    --card: rgba(255,255,255,0.035);
+    --card-border: rgba(255,255,255,0.09);
+    --card-hover: rgba(255,255,255,0.06);
+    --text: #f3f5fa;
+    --text-dim: #93a0b8;
+    --text-faint: #5e6b85;
+    --accent-a: #8b6bff;
+    --accent-b: #29d6e8;
+    --accent-c: #ff7ab8;
+    --accent-d: #ffb648;
+    --accent-e: #4ee69a;
+    --good: #4ee69a;
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 8% 0%, var(--bg-glow-1) 0%, transparent 45%),
+      radial-gradient(circle at 95% 12%, var(--bg-glow-2) 0%, transparent 40%),
+      radial-gradient(circle at 50% 100%, #150b28 0%, transparent 55%),
+      var(--bg);
+  }
+  .page-content{padding: 36px clamp(16px, 4vw, 56px) 64px;}
+  .wrap{max-width:1320px; margin:0 auto;}
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    flex-wrap:wrap; margin-bottom:30px; padding-bottom:22px;
+    border-bottom:1px solid var(--card-border);
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .mark{
+    width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    font-size:22px; box-shadow:0 8px 24px -8px rgba(139,107,255,0.65);
+  }
+  h1{font-size:25px; font-weight:800; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:13.5px; margin-top:3px;}
+  .meta-pills{display:flex; gap:10px; flex-wrap:wrap;}
+  .pill{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--text-dim);
+    background:var(--card); border:1px solid var(--card-border); padding:7px 13px; border-radius:999px;
+  }
+  .pill b{color:var(--text); font-weight:700;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--accent-e); box-shadow:0 0 8px var(--accent-e);}
+
+  /* ---------- Section labels ---------- */
+  .section-label{
+    font-size:11.5px; font-weight:700; letter-spacing:0.11em; text-transform:uppercase;
+    color:var(--text-faint); margin:38px 0 14px; display:flex; align-items:center; gap:10px;
+  }
+  .section-label::after{content:""; flex:1; height:1px; background:var(--card-border);}
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;}
+  .kpi-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:20px 22px; position:relative; overflow:hidden; transition:transform .25s, border-color .25s;
+  }
+  .kpi-card::before{
+    content:""; position:absolute; inset:0; opacity:0; transition:opacity .3s;
+    background:linear-gradient(135deg, rgba(139,107,255,0.14), transparent 60%);
+  }
+  .kpi-card:hover{transform:translateY(-3px); border-color:rgba(255,255,255,0.18);}
+  .kpi-card:hover::before{opacity:1;}
+  .kpi-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .kpi-label{font-size:12.5px; color:var(--text-dim); font-weight:600;}
+  .kpi-icon{font-size:17px; opacity:0.85;}
+  .kpi-value{font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-top:10px; font-family:'JetBrains Mono', monospace;}
+  .kpi-foot{font-size:12px; color:var(--text-faint); margin-top:7px; display:flex; align-items:center; gap:6px;}
+  .kpi-foot.up{color:var(--good);}
+
+  /* ---------- Insight chips ---------- */
+  .insight-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;}
+  .insight-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:16px 18px; display:flex; gap:13px; align-items:flex-start;
+  }
+  .insight-emoji{
+    width:34px; height:34px; min-width:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; background:rgba(255,255,255,0.05);
+  }
+  .insight-title{font-size:13px; font-weight:700; margin-bottom:3px;}
+  .insight-text{font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+  .insight-text b{color:var(--text); font-weight:700;}
+
+  /* ---------- Chart grid ---------- */
+  .grid-12{display:grid; grid-template-columns:repeat(12, 1fr); gap:16px;}
+  .card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:22px 24px;
+  }
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:12px; flex-wrap:wrap;}
+  .card-title{font-size:14.5px; font-weight:700;}
+  .card-note{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .legend-chip{font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.05); color:var(--text-dim); display:flex; align-items:center; gap:6px;}
+
+  .col-8{grid-column:span 8;} .col-7{grid-column:span 7;} .col-6{grid-column:span 6;}
+  .col-5{grid-column:span 5;} .col-4{grid-column:span 4;} .col-12{grid-column:span 12;}
+
+  .chart-box{position:relative; width:100%;}
+  .h-300{height:300px;} .h-260{height:260px;} .h-230{height:230px;}
+
+  /* ---------- Category legend list ---------- */
+  .cat-legend{display:flex; flex-direction:column; gap:11px; margin-top:14px;}
+  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .cat-swatch{width:9px; height:9px; border-radius:3px; flex:none;}
+  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cat-pct{font-weight:700; font-family:'JetBrains Mono', monospace; color:var(--text);}
+
+  /* ---------- Split bar (domestic vs international) ---------- */
+  .split-bar{height:14px; border-radius:999px; overflow:hidden; display:flex; background:rgba(255,255,255,0.06); margin:14px 0 12px;}
+  .split-uk{background:linear-gradient(90deg, var(--accent-a), var(--accent-b));}
+  .split-intl{background:rgba(255,255,255,0.14);}
+  .split-labels{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+  .split-labels b{color:var(--text); font-family:'JetBrains Mono', monospace;}
+
+  /* ---------- Room type leaderboard ---------- */
+  .lb-row{display:grid; grid-template-columns:30px 1.7fr 1fr 100px; align-items:center; gap:14px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05);}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-rank{font-family:'JetBrains Mono', monospace; font-weight:700; color:var(--text-faint); font-size:13px;}
+  .lb-name{font-size:13px; font-weight:600;}
+  .lb-code{font-size:11px; color:var(--text-faint); font-family:'JetBrains Mono', monospace; margin-top:2px;}
+  .lb-bar-track{height:7px; border-radius:999px; background:rgba(255,255,255,0.06); overflow:hidden;}
+  .lb-bar-fill{height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent-a), var(--accent-c));}
+  .lb-value{text-align:right; font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13px;}
+  .lb-sub{text-align:right; font-size:10.5px; color:var(--text-faint); margin-top:2px;}
+  .badge-solo{display:inline-block; margin-left:6px; font-size:9.5px; font-weight:700; color:var(--accent-d); background:rgba(255,182,72,0.12); padding:1px 6px; border-radius:6px; vertical-align:middle;}
+
+  .lb-head{display:grid; grid-template-columns:30px 1.7fr 1fr 100px; gap:14px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); padding-bottom:9px; border-bottom:1px solid var(--card-border); margin-bottom:2px;}
+
+  footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11.5px; color:var(--text-faint);}
+
+  @media (max-width: 980px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .insight-grid{grid-template-columns:1fr;}
+    .col-8,.col-7,.col-6,.col-5,.col-4{grid-column:span 12;}
+  }
+  @media (max-width: 560px){
+    .kpi-grid{grid-template-columns:1fr;}
+    header{flex-direction:column; align-items:flex-start;}
+  }
+
+  .fade-in{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ---------- Filter bar ---------- */
+  .filter-bar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:14px 18px; margin-bottom:30px;
+  }
+  .filter-label{font-size:13px; font-weight:600; color:var(--text-dim); display:flex; align-items:center; gap:8px; white-space:nowrap;}
+  .country-select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background:rgba(255,255,255,0.06) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' stroke='%2393a0b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 13px center;
+    background-size:12px;
+    border:1px solid var(--card-border); color:var(--text); font-family:'Inter',system-ui,sans-serif; font-weight:600; font-size:13.5px;
+    padding:9px 38px 9px 14px; border-radius:10px; cursor:pointer; min-width:230px;
+    transition:border-color .2s;
+  }
+  .country-select:hover{border-color:rgba(255,255,255,0.25);}
+  .country-select:focus{outline:none; border-color:var(--accent-a);}
+  .country-select option{background:#10131f; color:var(--text);}
+  .filter-sub{font-size:12.5px; color:var(--text-faint); margin-left:auto; font-family:'JetBrains Mono', monospace;}
+  .market-note{font-size:12.5px; color:var(--text-dim); margin-top:14px; padding-top:13px; border-top:1px solid rgba(255,255,255,0.06); min-height:16px;}
+  .market-note b{color:var(--text);}
+
+  @media (max-width:680px){
+    .filter-bar{flex-direction:column; align-items:flex-start;}
+    .filter-sub{margin-left:0;}
+    .country-select{width:100%;}
+  }
+
+  /* ---------- Top banner (full-bleed letterhead) ---------- */
+  .top-banner{
+    width:100%;
+    background:linear-gradient(120deg, #07142a 0%, #0b2347 55%, #0c2c52 100%);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:26px clamp(20px, 5vw, 64px);
+    display:flex; align-items:center;
+  }
+  .bb-mark{width:50px; height:50px; flex:none;}
+  .bb-divider{width:1px; height:40px; background:rgba(255,255,255,0.22); margin:0 22px; flex:none;}
+  .bb-word{font-size:26px; font-weight:700; letter-spacing:-0.01em; line-height:1; font-family:'Inter',system-ui,sans-serif;}
+  .bb-true{color:#f4f7fc;}
+  .bb-north{color:#6fa3e3;}
+  .bb-data{display:flex; align-items:center; gap:9px; margin-top:8px;}
+  .bb-rule{width:28px; height:1px; background:rgba(255,255,255,0.32); flex:none;}
+  .bb-label{font-size:11.5px; font-weight:600; letter-spacing:0.24em; color:#b9cbe6;}
+  @media (max-width:560px){
+    .top-banner{padding:18px 18px;}
+    .bb-mark{width:38px; height:38px;}
+    .bb-divider{margin:0 14px;}
+    .bb-word{font-size:20px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="top-banner fade-in">
+  <svg class="bb-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+    <path d="M32 9 L45 47 L32 39 Z" fill="#eef3fb"/>
+    <path d="M32 9 L19 47 L32 39 Z" fill="#4f86d8"/>
+  </svg>
+  <div class="bb-divider"></div>
+  <div>
+    <div class="bb-word"><span class="bb-true">True</span><span class="bb-north">North</span></div>
+    <div class="bb-data"><span class="bb-rule"></span><span class="bb-label">DATA</span><span class="bb-rule"></span></div>
+  </div>
+</div>
+
+<div class="page-content">
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">🏨</div>
+      <div>
+        <h1>Hotel Bookings Performance Dashboard</h1>
+        <div class="sub">Confirmed booking data &middot; 1 Jul 2015 &ndash; 31 Aug 2017</div>
+      </div>
+    </div>
+    <div class="meta-pills">
+      <div class="pill"><span class="dot"></span> <b>165</b> countries of origin</div>
+      <div class="pill">🏨 <b>2</b> hotel properties</div>
+      <div class="pill">🗓️ <b>26</b> months of activity</div>
+    </div>
+  </header>
+
+  <div class="filter-bar fade-in">
+    <div class="filter-label">🔎 Filter by booking channel</div>
+    <select id="channelFilter" class="country-select"></select>
+    <div class="filter-sub" id="filterSub">All 7 channels &middot; 73,419 bookings &middot; €25,996,324 total revenue</div>
+  </div>
+
+  <div class="section-label fade-in">Headline metrics</div>
+  <div class="kpi-grid fade-in">
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Total Revenue</span><span class="kpi-icon">💰</span></div>
+      <div class="kpi-value" id="kpi-revenue">€0</div>
+      <div class="kpi-foot" id="kpi-revenue-foot">Across 73,419 bookings</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Total Bookings</span><span class="kpi-icon">🧾</span></div>
+      <div class="kpi-value" id="kpi-bookings">0</div>
+      <div class="kpi-foot" id="kpi-bookings-foot">~2,824 bookings / month avg</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Room-Nights Sold</span><span class="kpi-icon">🛏️</span></div>
+      <div class="kpi-value" id="kpi-nights">0</div>
+      <div class="kpi-foot" id="kpi-nights-foot">Avg stay: 3.4 nights</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-top"><span class="kpi-label">Avg Daily Rate (ADR)</span><span class="kpi-icon">📊</span></div>
+      <div class="kpi-value" id="kpi-adr">€0</div>
+      <div class="kpi-foot" id="kpi-adr-foot">Median nightly rate: €94.50</div>
+    </div>
+  </div>
+
+  <div class="insight-grid fade-in" style="margin-top:16px;">
+    <div class="insight-card">
+      <div class="insight-emoji">📅</div>
+      <div>
+        <div class="insight-title">Sharp summer seasonality</div>
+        <div class="insight-text"><b>August</b> is the strongest month every year, peaking at <b>€1.97M</b> in Aug '17 &mdash; more than <b>7x</b> January 2016's low of <b>€265K</b>.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-emoji">💻</div>
+      <div>
+        <div class="insight-title">Online travel agents dominate</div>
+        <div class="insight-text"><b>Online TA</b> brings in <b>€13.7M</b> (<b>52.8%</b>) of revenue &mdash; more than the other six channels combined.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-emoji">🏨</div>
+      <div>
+        <div class="insight-title">City Hotel leads on volume and rate</div>
+        <div class="insight-text"><b>City Hotel</b> drives <b>61.5%</b> of bookings at a higher ADR (<b>€107.92</b> vs Resort's <b>€97.60</b>), for <b>55.4%</b> of total revenue.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Revenue trend</div>
+  <div class="grid-12">
+    <div class="card col-8">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Monthly Revenue &amp; Bookings</div>
+          <div class="card-note">Jul 2015&ndash;Aug 2017 &middot; strong summer-peaking seasonality</div>
+        </div>
+        <div class="legend-chip">📊 Revenue (bars) &middot; Bookings (line)</div>
+      </div>
+      <div class="chart-box h-300"><canvas id="chartMonthly"></canvas></div>
+    </div>
+    <div class="card col-4">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Revenue by Booking Channel</div>
+          <div class="card-note">Share of total revenue</div>
+        </div>
+      </div>
+      <div class="chart-box h-230"><canvas id="chartChannel"></canvas></div>
+      <div class="cat-legend" id="chanLegend"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Guests &amp; weekly patterns</div>
+  <div class="grid-12">
+    <div class="card col-5">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Domestic vs. International Guests</div>
+          <div class="card-note">Both properties are based in Portugal</div>
+        </div>
+      </div>
+      <div class="split-labels"><span>🇵🇹 Portugal (domestic) &middot; <b>21.3%</b></span><span><b>78.7%</b> &middot; International</span></div>
+      <div class="split-bar"><div class="split-uk" style="width:21.3%"></div><div class="split-intl" style="width:78.7%"></div></div>
+      <div class="chart-box h-230" style="margin-top:18px;"><canvas id="chartCountry"></canvas></div>
+      <div class="market-note">International guests average <b>€380.80</b> per booking vs <b>€281.26</b> for domestic guests &mdash; a <b>35%</b> premium despite Portugal supplying just <b>26.8%</b> of bookings.</div>
+    </div>
+    <div class="card col-7">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Bookings by Day of Week</div>
+          <div class="card-note">Arrival date &middot; Monday is the busiest day to check in</div>
+        </div>
+      </div>
+      <div class="chart-box h-260"><canvas id="chartDow"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label">Top room types</div>
+  <div class="grid-12">
+    <div class="card col-12">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Top 8 Room Types by Revenue</div>
+          <div class="card-note">Anonymized room type codes &middot; excludes code L (4 bookings, &lt;0.01% of revenue)</div>
+        </div>
+      </div>
+      <div class="lb-head"><span>#</span><span>Room Type</span><span>Revenue share</span><span style="text-align:right;">Revenue</span></div>
+      <div id="roomList"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Source: hotel_bookings_clean.csv &middot; 73,419 confirmed bookings</span>
+    <span>Generated 21 June 2026</span>
+  </footer>
+</div>
+</div>
+
+<script>
+const DATA = {
+  "summary": {
+    "total_revenue": 25996324.21, "n_bookings": 73419, "total_nights": 252259,
+    "adr": 103.0541, "median_rate": 94.5, "avg_los": 3.4359,
+    "date_start": "2015-07-01", "date_end": "2017-08-31",
+    "avg_bookings_per_month": 2823.81,
+    "domestic_pct_revenue": 21.32, "intl_pct_revenue": 78.68,
+    "domestic_pct_bookings": 26.84, "intl_pct_bookings": 73.16,
+    "avg_booking_value_domestic": 281.26, "avg_booking_value_intl": 380.80,
+    "n_countries": 165, "n_hotels": 2
+  },
+  "monthly": [
+    {"month":"2015-07","revenue":758339.79,"bookings":1460},
+    {"month":"2015-08","revenue":1137652.71,"bookings":2200},
+    {"month":"2015-09","revenue":1054620.67,"bookings":2935},
+    {"month":"2015-10","revenue":784714.88,"bookings":3119},
+    {"month":"2015-11","revenue":346709.49,"bookings":1793},
+    {"month":"2015-12","revenue":429521.57,"bookings":1830},
+    {"month":"2016-01","revenue":264521.38,"bookings":1633},
+    {"month":"2016-02","revenue":484170.72,"bookings":2494},
+    {"month":"2016-03","revenue":767337.42,"bookings":3272},
+    {"month":"2016-04","revenue":896591.38,"bookings":3294},
+    {"month":"2016-05","revenue":1073277.63,"bookings":3460},
+    {"month":"2016-06","revenue":1144800.38,"bookings":3135},
+    {"month":"2016-07","revenue":1525019.05,"bookings":3018},
+    {"month":"2016-08","revenue":1809324.75,"bookings":3199},
+    {"month":"2016-09","revenue":1289642.69,"bookings":3324},
+    {"month":"2016-10","revenue":1072101.84,"bookings":3601},
+    {"month":"2016-11","revenue":688843.47,"bookings":2738},
+    {"month":"2016-12","revenue":657870.72,"bookings":2376},
+    {"month":"2017-01","revenue":512155.46,"bookings":2373},
+    {"month":"2017-02","revenue":663370.76,"bookings":2751},
+    {"month":"2017-03","revenue":884824.97,"bookings":3232},
+    {"month":"2017-04","revenue":1203266.10,"bookings":3155},
+    {"month":"2017-05","revenue":1321936.01,"bookings":3492},
+    {"month":"2017-06","revenue":1438490.54,"bookings":3161},
+    {"month":"2017-07","revenue":1817038.23,"bookings":3290},
+    {"month":"2017-08","revenue":1970181.60,"bookings":3084}
+  ],
+  "category": [
+    {"category":"Online TA","revenue":13714401.42,"bookings":35391,"pct":52.76},
+    {"category":"Offline TA/TO","revenue":5659554.58,"bookings":15616,"pct":21.77},
+    {"category":"Direct","revenue":4099618.57,"bookings":10463,"pct":15.77},
+    {"category":"Groups","revenue":1869156.56,"bookings":7485,"pct":7.19},
+    {"category":"Corporate","revenue":577912.19,"bookings":4226,"pct":2.22},
+    {"category":"Aviation","revenue":70868.36,"bookings":180,"pct":0.27},
+    {"category":"Complementary","revenue":4812.53,"bookings":58,"pct":0.02}
+  ],
+  "countries": [
+    {"country":"United Kingdom","code":"GBR","revenue":4112359.14,"bookings":9604},
+    {"country":"France","code":"FRA","revenue":3098696.28,"bookings":8428},
+    {"country":"Spain","code":"ESP","revenue":2247108.09,"bookings":6313},
+    {"country":"Germany","code":"DEU","revenue":2068219.65,"bookings":6028},
+    {"country":"Ireland","code":"IRL","revenue":1240002.35,"bookings":2537},
+    {"country":"Italy","code":"ITA","revenue":866439.42,"bookings":2417},
+    {"country":"Belgium","code":"BEL","revenue":759145.06,"bookings":1862}
+  ],
+  "dow": [
+    {"day":"Monday","revenue":4459704.39,"bookings":11728},
+    {"day":"Tuesday","revenue":3173122.01,"bookings":9100},
+    {"day":"Wednesday","revenue":3201444.20,"bookings":9984},
+    {"day":"Thursday","revenue":3771394.83,"bookings":11063},
+    {"day":"Friday","revenue":3632303.37,"bookings":11379},
+    {"day":"Saturday","revenue":3932607.06,"bookings":10711},
+    {"day":"Sunday","revenue":3825748.35,"bookings":9454}
+  ],
+  "roomTypes": [
+    {"code":"A","revenue":14512852.67,"nights":159431,"bookings":51096,"pct":55.83},
+    {"code":"D","revenue":6046988.08,"nights":53296,"bookings":12919,"pct":23.26},
+    {"code":"E","revenue":2506292.01,"nights":21257,"bookings":4522,"pct":9.64},
+    {"code":"F","revenue":1145555.87,"nights":7041,"bookings":1951,"pct":4.41},
+    {"code":"G","revenue":888224.59,"nights":4949,"bookings":1250,"pct":3.42},
+    {"code":"C","revenue":445576.72,"nights":2705,"bookings":607,"pct":1.71},
+    {"code":"H","revenue":236640.17,"nights":1210,"bookings":350,"pct":0.91},
+    {"code":"B","revenue":213440.10,"nights":2365,"bookings":720,"pct":0.82}
+  ]
+};
+
+const fmtEUR = n => '€' + Math.round(n).toLocaleString('en-US');
+const fmtEUR2 = n => '€' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => n.toLocaleString('en-US');
+const fmtCompact = n => Math.abs(n) >= 1e6 ? '€' + (n/1e6).toFixed(2) + 'M' : '€' + Math.round(n/1000) + 'K';
+
+/* ============================================================
+   STEP 1 — Render all plain-DOM content first (KPI numbers,
+   channel legend, room-type leaderboard). None of this depends
+   on Chart.js, so it always renders even if the chart library
+   fails to load from its CDN.
+   ============================================================ */
+function countUp(el, target, isCurrency, suffix){
+  const dur = 900; const start = performance.now();
+  function tick(now){
+    const p = Math.min((now-start)/dur, 1);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = target * eased;
+    el.textContent = (isCurrency ? fmtEUR(val) : fmtInt(Math.round(val))) + (suffix||'');
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+countUp(document.getElementById('kpi-revenue'), DATA.summary.total_revenue, true);
+countUp(document.getElementById('kpi-bookings'), DATA.summary.n_bookings, false);
+countUp(document.getElementById('kpi-nights'), DATA.summary.total_nights, false);
+document.getElementById('kpi-adr').textContent = fmtEUR2(DATA.summary.adr);
+
+/* ---------------- Channel filter (functional) ---------------- */
+const chanSelect = document.getElementById('channelFilter');
+const filterSub = document.getElementById('filterSub');
+const optAll = document.createElement('option');
+optAll.value = 'all';
+optAll.textContent = `All ${DATA.category.length} channels`;
+chanSelect.appendChild(optAll);
+DATA.category.forEach(c => {
+  const o = document.createElement('option');
+  o.value = c.category; o.textContent = c.category;
+  chanSelect.appendChild(o);
+});
+function updateFilterSub(){
+  if(chanSelect.value === 'all'){
+    filterSub.textContent = `All ${DATA.category.length} channels · ${fmtInt(DATA.summary.n_bookings)} bookings · ${fmtEUR(DATA.summary.total_revenue)} total revenue`;
+  } else {
+    const c = DATA.category.find(x => x.category === chanSelect.value);
+    filterSub.textContent = `${c.category} · ${fmtInt(c.bookings)} bookings · ${fmtEUR(c.revenue)} revenue (${c.pct}% of total)`;
+  }
+}
+chanSelect.addEventListener('change', updateFilterSub);
+updateFilterSub();
+
+const monthLabels = DATA.monthly.map(d => {
+  const [y,m] = d.month.split('-');
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[parseInt(m,10)-1] + " '" + y.slice(2);
+});
+
+const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc','#94a3b8'];
+const topCats = DATA.category.slice(0,7);
+const restCats = DATA.category.slice(7);
+const catLabels = topCats.map(d=>d.category);
+const catValues = topCats.map(d=>d.revenue);
+const catPcts = topCats.map(d=>d.pct);
+if(restCats.length){
+  const otherPct = restCats.reduce((s,d)=>s+d.pct,0);
+  const otherRev = restCats.reduce((s,d)=>s+d.revenue,0);
+  catLabels.push(`Other (${restCats.length} channels)`);
+  catValues.push(otherRev);
+  catPcts.push(Math.round(otherPct*10)/10);
+}
+
+const legendEl = document.getElementById('chanLegend');
+catLabels.forEach((label, i) => {
+  const row = document.createElement('div');
+  row.className = 'cat-row';
+  row.innerHTML = `<span class="cat-swatch" style="background:${catColors[i]}"></span><span class="cat-name">${label}</span><span class="cat-pct">${catPcts[i]}%</span>`;
+  legendEl.appendChild(row);
+});
+
+const roomList = document.getElementById('roomList');
+const maxRoomRev = Math.max(...DATA.roomTypes.map(p=>p.revenue));
+DATA.roomTypes.forEach((p, i) => {
+  const pct = (p.revenue / maxRoomRev) * 100;
+  const row = document.createElement('div');
+  row.className = 'lb-row';
+  row.innerHTML = `
+    <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
+    <div>
+      <div class="lb-name">Room Type ${p.code}</div>
+      <div class="lb-code">${fmtInt(p.nights)} nights &middot; ${fmtInt(p.bookings)} bookings</div>
+    </div>
+    <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+    <div>
+      <div class="lb-value">${fmtEUR(p.revenue)}</div>
+      <div class="lb-sub">${((p.revenue/DATA.summary.total_revenue)*100).toFixed(1)}% of revenue</div>
+    </div>
+  `;
+  roomList.appendChild(row);
+});
+
+/* ============================================================
+   STEP 2 — Charts. Guarded so a CDN hiccup can't blank the rest
+   of the page; each chart is also wrapped individually so one
+   bad render doesn't take the others down with it.
+   ============================================================ */
+function showChartFallback(canvas, msg){
+  const box = canvas.closest('.chart-box');
+  if(box) box.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5e6b85;font-size:12px;text-align:center;padding:0 20px;">${msg}</div>`;
+}
+
+if (typeof Chart === 'undefined') {
+  document.querySelectorAll('canvas').forEach(c => showChartFallback(c, 'Chart library failed to load — check your internet connection and reload.'));
+} else {
+
+Chart.defaults.color = '#93a0b8';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11.5;
+
+/* ---------------- Monthly combo chart ---------------- */
+try {
+new Chart(document.getElementById('chartMonthly'), {
+  data: {
+    labels: monthLabels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Revenue',
+        data: DATA.monthly.map(d => d.revenue),
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,260);
+          g.addColorStop(0, 'rgba(139,107,255,0.95)');
+          g.addColorStop(1, 'rgba(41,214,232,0.35)');
+          return g;
+        },
+        borderRadius: 6,
+        yAxisID: 'y',
+        order: 2
+      },
+      {
+        type: 'line',
+        label: 'Bookings',
+        data: DATA.monthly.map(d => d.bookings),
+        borderColor: '#ff7ab8',
+        backgroundColor: '#ff7ab8',
+        pointRadius: 3,
+        pointBackgroundColor: '#ff7ab8',
+        tension: 0.35,
+        yAxisID: 'y1',
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode:'index', intersect:false},
+    plugins: {
+      legend: {display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks: {
+          label: (c) => c.dataset.label === 'Revenue' ? '  Revenue: ' + fmtEUR(c.raw) : '  Bookings: ' + fmtInt(c.raw)
+        }
+      }
+    },
+    scales: {
+      x: {grid:{display:false}},
+      y: {position:'left', grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtCompact(v)}},
+      y1: {position:'right', grid:{display:false}, ticks:{callback:(v)=>fmtInt(v)}}
+    }
+  }
+});
+} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Channel doughnut ---------------- */
+try {
+new Chart(document.getElementById('chartChannel'), {
+  type: 'doughnut',
+  data: {
+    labels: catLabels,
+    datasets: [{ data: catValues, backgroundColor: catColors, borderColor: '#0a0e17', borderWidth:3, hoverOffset:6 }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false, cutout:'68%',
+    plugins: {
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtEUR(c.raw) + ' (' + catPcts[c.dataIndex] + '%)' }
+      }
+    }
+  }
+});
+} catch(e) { console.error('Channel chart failed:', e); showChartFallback(document.getElementById('chartChannel'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Top non-domestic countries bar ---------------- */
+try {
+new Chart(document.getElementById('chartCountry'), {
+  type: 'bar',
+  data: {
+    labels: DATA.countries.map(d=>d.country),
+    datasets: [{
+      data: DATA.countries.map(d=>d.revenue),
+      backgroundColor: '#29d6e8',
+      borderRadius: 5,
+      barThickness: 14
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtEUR(c.raw) }
+      }
+    },
+    scales: {
+      x: {grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtCompact(v)}},
+      y: {grid:{display:false}}
+    }
+  }
+});
+} catch(e) { console.error('Country chart failed:', e); showChartFallback(document.getElementById('chartCountry'), 'Couldn\'t render this chart.'); }
+
+/* ---------------- Bookings by day of week bar ---------------- */
+try {
+new Chart(document.getElementById('chartDow'), {
+  type: 'bar',
+  data: {
+    labels: DATA.dow.map(d=>d.day.slice(0,3)),
+    datasets: [{
+      data: DATA.dow.map(d=>d.bookings),
+      backgroundColor: DATA.dow.map(d=> d.day==='Monday' ? '#ff7ab8' : 'rgba(139,107,255,0.75)'),
+      borderRadius: 7,
+      maxBarThickness: 40
+    }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip: {
+        backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
+        titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
+        callbacks:{ label:(c)=> '  ' + fmtInt(c.raw) + ' bookings' }
+      }
+    },
+    scales: {
+      x: {grid:{display:false}},
+      y: {grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:(v)=>fmtInt(v)}}
+    }
+  }
+});
+} catch(e) { console.error('Day-of-week chart failed:', e); showChartFallback(document.getElementById('chartDow'), 'Couldn\'t render this chart.'); }
+
+} // end Chart-available guard
+</script>
+</body>
+</html>
