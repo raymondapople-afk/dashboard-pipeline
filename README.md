@@ -1,12 +1,44 @@
 # Dashboard Data Pipeline
 
-Ingests a raw client CSV export, cleans it into a standard schema, and
-produces:
+A reusable pipeline that turns messy, differently-shaped client CSV exports
+into a standard analytics schema, then produces two outputs from that single
+clean dataset:
 
-1. A flat cleaned CSV (`data/processed/<client>_clean.csv`) to point Looker
-   Studio at.
-2. Pre-aggregated JSON files (`data/exports/*.json`) for a standalone web
-   dashboard.
+1. A flat cleaned CSV (`data/processed/<client>_clean.csv`) to point a BI
+   tool (e.g. Looker Studio) at.
+2. Pre-aggregated JSON files (`data/exports/*.json`), inlined directly into a
+   self-contained HTML dashboard (`dashboard/<client>_dashboard.html`) that
+   opens in any browser with no server or build step.
+
+The goal is reusability: the core cleaning/transform code never references
+a specific client's column names, file structure, or quirks — onboarding a
+new client is a matter of writing a config file, not touching pipeline code.
+This has been validated across three structurally different real-world
+datasets (UK e-commerce line items, coffee shop POS transactions, and hotel
+bookings) — see [Adding a new client](#adding-a-new-client) below for what
+each one needed.
+
+## Try it
+
+Open any of the prebuilt dashboards directly — no setup required:
+- [`dashboard/uk_ecommerce_dashboard.html`](dashboard/uk_ecommerce_dashboard.html)
+- [`dashboard/coffee_shop_dashboard.html`](dashboard/coffee_shop_dashboard.html)
+- [`dashboard/hotel_bookings_dashboard.html`](dashboard/hotel_bookings_dashboard.html)
+
+Each is a static file with its dataset's aggregates baked in — just open it
+in a browser.
+
+## Project layout
+
+```
+pipeline/        cleaning/transform/export code, generic across clients
+config/clients/  one YAML per client describing its raw schema and quirks
+data/raw/        raw client CSV exports (input)
+data/processed/  cleaned, standard-schema CSV (output, for BI tools)
+data/exports/    pre-aggregated JSON used to build the dashboards (output)
+dashboard/       standalone HTML dashboards, one per client
+tests/           pytest suite + handcrafted CSV fixtures
+```
 
 ## Run it
 
