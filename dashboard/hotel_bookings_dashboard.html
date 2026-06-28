@@ -121,9 +121,14 @@
 
   /* ---------- Category legend list ---------- */
   .cat-legend{display:flex; flex-direction:column; gap:11px; margin-top:14px;}
-  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px; padding:3px 5px; margin:-3px -5px; border-radius:7px; transition:opacity .2s, background .2s;}
+  .cat-row.clickable{cursor:pointer;}
+  .cat-row.clickable:hover{background:rgba(255,255,255,0.05);}
+  .cat-row.cat-row-dim{opacity:0.38;}
+  .cat-row.cat-row-active{opacity:1; background:rgba(255,255,255,0.06);}
+  .cat-row.cat-row-active .cat-name{color:var(--text); font-weight:700;}
   .cat-swatch{width:9px; height:9px; border-radius:3px; flex:none;}
-  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color .2s;}
   .cat-pct{font-weight:700; font-family:'JetBrains Mono', monospace; color:var(--text);}
 
   /* ---------- Split bar (domestic vs international) ---------- */
@@ -183,6 +188,12 @@
   .filter-sub{font-size:12.5px; color:var(--text-faint); margin-left:auto; font-family:'JetBrains Mono', monospace;}
   .market-note{font-size:12.5px; color:var(--text-dim); margin-top:14px; padding-top:13px; border-top:1px solid rgba(255,255,255,0.06); min-height:16px;}
   .market-note b{color:var(--text);}
+  .clear-filter-btn{
+    font-size:11.5px; font-weight:600; color:var(--text-dim); background:rgba(255,255,255,0.06);
+    border:1px solid var(--card-border); padding:5px 12px; border-radius:999px; cursor:pointer;
+    font-family:'Inter',system-ui,sans-serif; transition:all .15s;
+  }
+  .clear-filter-btn:hover{color:var(--text); border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.1);}
 
   @media (max-width:680px){
     .filter-bar{flex-direction:column; align-items:flex-start;}
@@ -250,6 +261,7 @@
   <div class="filter-bar fade-in">
     <div class="filter-label">🔎 Filter by booking channel</div>
     <select id="channelFilter" class="country-select"></select>
+    <button class="clear-filter-btn" id="clearFilterBtn" style="display:none;">✕ Clear filter</button>
     <div class="filter-sub" id="filterSub">All 7 channels &middot; 73,419 bookings &middot; €25,996,324 total revenue</div>
   </div>
 
@@ -281,22 +293,22 @@
     <div class="insight-card">
       <div class="insight-emoji">📅</div>
       <div>
-        <div class="insight-title">Sharp summer seasonality</div>
-        <div class="insight-text"><b>August</b> is the strongest month every year, peaking at <b>€1.97M</b> in Aug '17 &mdash; more than <b>7x</b> January 2016's low of <b>€265K</b>.</div>
+        <div class="insight-title" id="insight1Title">Sharp summer seasonality</div>
+        <div class="insight-text" id="insight1Text"><b>August</b> is the strongest month every year, peaking at <b>€1.97M</b> in Aug '17 &mdash; more than <b>7x</b> January 2016's low of <b>€265K</b>.</div>
       </div>
     </div>
     <div class="insight-card">
       <div class="insight-emoji">💻</div>
       <div>
-        <div class="insight-title">Online travel agents dominate</div>
-        <div class="insight-text"><b>Online TA</b> brings in <b>€13.7M</b> (<b>52.8%</b>) of revenue &mdash; more than the other six channels combined.</div>
+        <div class="insight-title" id="insight2Title">Online travel agents dominate</div>
+        <div class="insight-text" id="insight2Text"><b>Online TA</b> brings in <b>€13.7M</b> (<b>52.8%</b>) of revenue &mdash; more than the other six channels combined.</div>
       </div>
     </div>
     <div class="insight-card">
       <div class="insight-emoji">🏨</div>
       <div>
-        <div class="insight-title">City Hotel leads on volume and rate</div>
-        <div class="insight-text"><b>City Hotel</b> drives <b>61.5%</b> of bookings at a higher ADR (<b>€107.92</b> vs Resort's <b>€97.60</b>), for <b>55.4%</b> of total revenue.</div>
+        <div class="insight-title" id="insight3Title">City Hotel leads on volume and rate</div>
+        <div class="insight-text" id="insight3Text"><b>City Hotel</b> drives <b>61.5%</b> of bookings at a higher ADR (<b>€107.92</b> vs Resort's <b>€97.60</b>), for <b>55.4%</b> of total revenue.</div>
       </div>
     </div>
   </div>
@@ -307,7 +319,7 @@
       <div class="card-head">
         <div>
           <div class="card-title">Monthly Revenue &amp; Bookings</div>
-          <div class="card-note">Jul 2015&ndash;Aug 2017 &middot; strong summer-peaking seasonality</div>
+          <div class="card-note" id="monthlyCardNote">Jul 2015&ndash;Aug 2017 &middot; strong summer-peaking seasonality</div>
         </div>
         <div class="legend-chip">📊 Revenue (bars) &middot; Bookings (line)</div>
       </div>
@@ -334,16 +346,16 @@
           <div class="card-note">Both properties are based in Portugal</div>
         </div>
       </div>
-      <div class="split-labels"><span>🇵🇹 Portugal (domestic) &middot; <b>21.3%</b></span><span><b>78.7%</b> &middot; International</span></div>
-      <div class="split-bar"><div class="split-uk" style="width:21.3%"></div><div class="split-intl" style="width:78.7%"></div></div>
+      <div class="split-labels" id="splitLabels"><span>🇵🇹 Portugal (domestic) &middot; <b>21.3%</b></span><span><b>78.7%</b> &middot; International</span></div>
+      <div class="split-bar"><div class="split-uk" id="splitDomFill" style="width:21.3%"></div><div class="split-intl" id="splitIntlFill" style="width:78.7%"></div></div>
       <div class="chart-box h-230" style="margin-top:18px;"><canvas id="chartCountry"></canvas></div>
-      <div class="market-note">International guests average <b>€380.80</b> per booking vs <b>€281.26</b> for domestic guests &mdash; a <b>35%</b> premium despite Portugal supplying just <b>26.8%</b> of bookings.</div>
+      <div class="market-note" id="marketNote">International guests average <b>€380.80</b> per booking vs <b>€281.26</b> for domestic guests &mdash; a <b>35%</b> premium despite Portugal supplying just <b>26.8%</b> of bookings.</div>
     </div>
     <div class="card col-7">
       <div class="card-head">
         <div>
           <div class="card-title">Bookings by Day of Week</div>
-          <div class="card-note">Arrival date &middot; Monday is the busiest day to check in</div>
+          <div class="card-note" id="dowCardNote">Arrival date &middot; Monday is the busiest day to check in</div>
         </div>
       </div>
       <div class="chart-box h-260"><canvas id="chartDow"></canvas></div>
@@ -355,7 +367,7 @@
     <div class="card col-12">
       <div class="card-head">
         <div>
-          <div class="card-title">Top 8 Room Types by Revenue</div>
+          <div class="card-title" id="roomCardTitle">Top 8 Room Types by Revenue</div>
           <div class="card-note">Anonymized room type codes &middot; excludes code L (4 bookings, &lt;0.01% of revenue)</div>
         </div>
       </div>
@@ -372,193 +384,117 @@
 </div>
 
 <script>
-const DATA = {
-  "summary": {
-    "total_revenue": 25996324.21, "n_bookings": 73419, "total_nights": 252259,
-    "adr": 103.0541, "median_rate": 94.5, "avg_los": 3.4359,
-    "date_start": "2015-07-01", "date_end": "2017-08-31",
-    "avg_bookings_per_month": 2823.81,
-    "domestic_pct_revenue": 21.32, "intl_pct_revenue": 78.68,
-    "domestic_pct_bookings": 26.84, "intl_pct_bookings": 73.16,
-    "avg_booking_value_domestic": 281.26, "avg_booking_value_intl": 380.80,
-    "n_countries": 165, "n_hotels": 2
-  },
-  "monthly": [
-    {"month":"2015-07","revenue":758339.79,"bookings":1460},
-    {"month":"2015-08","revenue":1137652.71,"bookings":2200},
-    {"month":"2015-09","revenue":1054620.67,"bookings":2935},
-    {"month":"2015-10","revenue":784714.88,"bookings":3119},
-    {"month":"2015-11","revenue":346709.49,"bookings":1793},
-    {"month":"2015-12","revenue":429521.57,"bookings":1830},
-    {"month":"2016-01","revenue":264521.38,"bookings":1633},
-    {"month":"2016-02","revenue":484170.72,"bookings":2494},
-    {"month":"2016-03","revenue":767337.42,"bookings":3272},
-    {"month":"2016-04","revenue":896591.38,"bookings":3294},
-    {"month":"2016-05","revenue":1073277.63,"bookings":3460},
-    {"month":"2016-06","revenue":1144800.38,"bookings":3135},
-    {"month":"2016-07","revenue":1525019.05,"bookings":3018},
-    {"month":"2016-08","revenue":1809324.75,"bookings":3199},
-    {"month":"2016-09","revenue":1289642.69,"bookings":3324},
-    {"month":"2016-10","revenue":1072101.84,"bookings":3601},
-    {"month":"2016-11","revenue":688843.47,"bookings":2738},
-    {"month":"2016-12","revenue":657870.72,"bookings":2376},
-    {"month":"2017-01","revenue":512155.46,"bookings":2373},
-    {"month":"2017-02","revenue":663370.76,"bookings":2751},
-    {"month":"2017-03","revenue":884824.97,"bookings":3232},
-    {"month":"2017-04","revenue":1203266.10,"bookings":3155},
-    {"month":"2017-05","revenue":1321936.01,"bookings":3492},
-    {"month":"2017-06","revenue":1438490.54,"bookings":3161},
-    {"month":"2017-07","revenue":1817038.23,"bookings":3290},
-    {"month":"2017-08","revenue":1970181.60,"bookings":3084}
-  ],
-  "category": [
-    {"category":"Online TA","revenue":13714401.42,"bookings":35391,"pct":52.76},
-    {"category":"Offline TA/TO","revenue":5659554.58,"bookings":15616,"pct":21.77},
-    {"category":"Direct","revenue":4099618.57,"bookings":10463,"pct":15.77},
-    {"category":"Groups","revenue":1869156.56,"bookings":7485,"pct":7.19},
-    {"category":"Corporate","revenue":577912.19,"bookings":4226,"pct":2.22},
-    {"category":"Aviation","revenue":70868.36,"bookings":180,"pct":0.27},
-    {"category":"Complementary","revenue":4812.53,"bookings":58,"pct":0.02}
-  ],
-  "countries": [
-    {"country":"United Kingdom","code":"GBR","revenue":4112359.14,"bookings":9604},
-    {"country":"France","code":"FRA","revenue":3098696.28,"bookings":8428},
-    {"country":"Spain","code":"ESP","revenue":2247108.09,"bookings":6313},
-    {"country":"Germany","code":"DEU","revenue":2068219.65,"bookings":6028},
-    {"country":"Ireland","code":"IRL","revenue":1240002.35,"bookings":2537},
-    {"country":"Italy","code":"ITA","revenue":866439.42,"bookings":2417},
-    {"country":"Belgium","code":"BEL","revenue":759145.06,"bookings":1862}
-  ],
-  "dow": [
-    {"day":"Monday","revenue":4459704.39,"bookings":11728},
-    {"day":"Tuesday","revenue":3173122.01,"bookings":9100},
-    {"day":"Wednesday","revenue":3201444.20,"bookings":9984},
-    {"day":"Thursday","revenue":3771394.83,"bookings":11063},
-    {"day":"Friday","revenue":3632303.37,"bookings":11379},
-    {"day":"Saturday","revenue":3932607.06,"bookings":10711},
-    {"day":"Sunday","revenue":3825748.35,"bookings":9454}
-  ],
-  "roomTypes": [
-    {"code":"A","revenue":14512852.67,"nights":159431,"bookings":51096,"pct":55.83},
-    {"code":"D","revenue":6046988.08,"nights":53296,"bookings":12919,"pct":23.26},
-    {"code":"E","revenue":2506292.01,"nights":21257,"bookings":4522,"pct":9.64},
-    {"code":"F","revenue":1145555.87,"nights":7041,"bookings":1951,"pct":4.41},
-    {"code":"G","revenue":888224.59,"nights":4949,"bookings":1250,"pct":3.42},
-    {"code":"C","revenue":445576.72,"nights":2705,"bookings":607,"pct":1.71},
-    {"code":"H","revenue":236640.17,"nights":1210,"bookings":350,"pct":0.91},
-    {"code":"B","revenue":213440.10,"nights":2365,"bookings":720,"pct":0.82}
-  ]
-};
+const CUBE = {"channelOrder": ["Online TA", "Offline TA/TO", "Direct", "Groups", "Corporate", "Aviation", "Complementary"], "cube": {"ALL": {"summary": {"revenue": 25996324.21, "bookings": 73419, "nights": 252259, "adr": 103.0541, "median_rate": 94.5, "avg_los": 3.4359, "share_of_total": 100.0, "domestic_pct_revenue": 21.32, "intl_pct_revenue": 78.68, "domestic_pct_bookings": 26.84, "intl_pct_bookings": 73.16, "avg_booking_value_domestic": 281.26, "avg_booking_value_intl": 380.8}, "monthly": [{"month": "2015-07", "revenue": 758339.79, "bookings": 1460, "nights": 6389}, {"month": "2015-08", "revenue": 1137652.71, "bookings": 2200, "nights": 8955}, {"month": "2015-09", "revenue": 1054620.67, "bookings": 2935, "nights": 10840}, {"month": "2015-10", "revenue": 784714.88, "bookings": 3119, "nights": 9871}, {"month": "2015-11", "revenue": 346709.49, "bookings": 1793, "nights": 5809}, {"month": "2015-12", "revenue": 429521.57, "bookings": 1830, "nights": 5550}, {"month": "2016-01", "revenue": 264521.38, "bookings": 1633, "nights": 4181}, {"month": "2016-02", "revenue": 484170.72, "bookings": 2494, "nights": 6980}, {"month": "2016-03", "revenue": 767337.42, "bookings": 3272, "nights": 10134}, {"month": "2016-04", "revenue": 896591.38, "bookings": 3294, "nights": 10424}, {"month": "2016-05", "revenue": 1073277.63, "bookings": 3460, "nights": 11556}, {"month": "2016-06", "revenue": 1144800.38, "bookings": 3135, "nights": 11341}, {"month": "2016-07", "revenue": 1525019.05, "bookings": 3018, "nights": 11831}, {"month": "2016-08", "revenue": 1809324.75, "bookings": 3199, "nights": 12414}, {"month": "2016-09", "revenue": 1289642.69, "bookings": 3324, "nights": 11820}, {"month": "2016-10", "revenue": 1072101.84, "bookings": 3601, "nights": 11663}, {"month": "2016-11", "revenue": 688843.47, "bookings": 2738, "nights": 8780}, {"month": "2016-12", "revenue": 657870.72, "bookings": 2376, "nights": 7524}, {"month": "2017-01", "revenue": 512155.46, "bookings": 2373, "nights": 6977}, {"month": "2017-02", "revenue": 663370.76, "bookings": 2751, "nights": 8638}, {"month": "2017-03", "revenue": 884824.97, "bookings": 3232, "nights": 11387}, {"month": "2017-04", "revenue": 1203266.1, "bookings": 3155, "nights": 11183}, {"month": "2017-05", "revenue": 1321936.01, "bookings": 3492, "nights": 11881}, {"month": "2017-06", "revenue": 1438490.54, "bookings": 3161, "nights": 11684}, {"month": "2017-07", "revenue": 1817038.23, "bookings": 3290, "nights": 12346}, {"month": "2017-08", "revenue": 1970181.6, "bookings": 3084, "nights": 12101}], "dow": [{"day": "Monday", "revenue": 4459704.39, "bookings": 11728}, {"day": "Tuesday", "revenue": 3173122.01, "bookings": 9100}, {"day": "Wednesday", "revenue": 3201444.2, "bookings": 9984}, {"day": "Thursday", "revenue": 3771394.83, "bookings": 11063}, {"day": "Friday", "revenue": 3632303.37, "bookings": 11379}, {"day": "Saturday", "revenue": 3932607.06, "bookings": 10711}, {"day": "Sunday", "revenue": 3825748.35, "bookings": 9454}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 4112359.14, "bookings": 9604}, {"country": "France", "code": "FRA", "revenue": 3098696.28, "bookings": 8428}, {"country": "Spain", "code": "ESP", "revenue": 2247108.09, "bookings": 6313}, {"country": "Germany", "code": "DEU", "revenue": 2068219.65, "bookings": 6028}, {"country": "Ireland", "code": "IRL", "revenue": 1240002.35, "bookings": 2537}, {"country": "Italy", "code": "ITA", "revenue": 866439.42, "bookings": 2417}, {"country": "Belgium", "code": "BEL", "revenue": 759145.06, "bookings": 1862}], "roomTypes": [{"code": "A", "revenue": 14512852.67, "nights": 159431, "bookings": 51096, "pct": 55.83}, {"code": "D", "revenue": 6046988.08, "nights": 53296, "bookings": 12919, "pct": 23.26}, {"code": "E", "revenue": 2506292.01, "nights": 21257, "bookings": 4522, "pct": 9.64}, {"code": "F", "revenue": 1145555.87, "nights": 7041, "bookings": 1951, "pct": 4.41}, {"code": "G", "revenue": 888224.59, "nights": 4949, "bookings": 1250, "pct": 3.42}, {"code": "C", "revenue": 445576.72, "nights": 2705, "bookings": 607, "pct": 1.71}, {"code": "H", "revenue": 236640.17, "nights": 1210, "bookings": 350, "pct": 0.91}, {"code": "B", "revenue": 213440.1, "nights": 2365, "bookings": 720, "pct": 0.82}], "hotelType": {"City Hotel": {"revenue": 14394410.18, "bookings": 45149, "nights": 133386, "adr": 107.9154, "pct_bookings": 61.49, "pct_revenue": 55.37}, "Resort Hotel": {"revenue": 11601914.03, "bookings": 28270, "nights": 118873, "adr": 97.5992, "pct_bookings": 38.51, "pct_revenue": 44.63}}, "category": [{"category": "Online TA", "revenue": 13714401.42, "bookings": 35391, "pct": 52.76}, {"category": "Offline TA/TO", "revenue": 5659554.58, "bookings": 15616, "pct": 21.77}, {"category": "Direct", "revenue": 4099618.57, "bookings": 10463, "pct": 15.77}, {"category": "Groups", "revenue": 1869156.56, "bookings": 7485, "pct": 7.19}, {"category": "Corporate", "revenue": 577912.19, "bookings": 4226, "pct": 2.22}, {"category": "Aviation", "revenue": 70868.36, "bookings": 180, "pct": 0.27}, {"category": "Complementary", "revenue": 4812.53, "bookings": 58, "pct": 0.02}]}, "Online TA": {"summary": {"revenue": 13714401.42, "bookings": 35391, "nights": 118694, "adr": 115.5442, "median_rate": 107.95, "avg_los": 3.3538, "share_of_total": 52.76, "domestic_pct_revenue": 15.27, "intl_pct_revenue": 84.73, "domestic_pct_bookings": 17.79, "intl_pct_bookings": 82.21, "avg_booking_value_domestic": 332.52, "avg_booking_value_intl": 399.41, "rank": 1}, "monthly": [{"month": "2015-07", "revenue": 291711.66, "bookings": 505, "nights": 2241}, {"month": "2015-08", "revenue": 492974.18, "bookings": 912, "nights": 3579}, {"month": "2015-09", "revenue": 368798.03, "bookings": 917, "nights": 3341}, {"month": "2015-10", "revenue": 289917.34, "bookings": 986, "nights": 3251}, {"month": "2015-11", "revenue": 99794.02, "bookings": 480, "nights": 1409}, {"month": "2015-12", "revenue": 148087.35, "bookings": 635, "nights": 1917}, {"month": "2016-01", "revenue": 125756.32, "bookings": 702, "nights": 1790}, {"month": "2016-02", "revenue": 232725.26, "bookings": 1070, "nights": 2980}, {"month": "2016-03", "revenue": 416353.31, "bookings": 1530, "nights": 4827}, {"month": "2016-04", "revenue": 499851.61, "bookings": 1623, "nights": 5124}, {"month": "2016-05", "revenue": 536400.3, "bookings": 1534, "nights": 5033}, {"month": "2016-06", "revenue": 545710.56, "bookings": 1418, "nights": 4683}, {"month": "2016-07", "revenue": 854763.48, "bookings": 1725, "nights": 6268}, {"month": "2016-08", "revenue": 1100721.87, "bookings": 2039, "nights": 7241}, {"month": "2016-09", "revenue": 631649.69, "bookings": 1540, "nights": 4889}, {"month": "2016-10", "revenue": 570599.91, "bookings": 1631, "nights": 5360}, {"month": "2016-11", "revenue": 438398.93, "bookings": 1524, "nights": 5135}, {"month": "2016-12", "revenue": 382643.47, "bookings": 1302, "nights": 4364}, {"month": "2017-01", "revenue": 317576.2, "bookings": 1203, "nights": 4040}, {"month": "2017-02", "revenue": 389548.52, "bookings": 1411, "nights": 4610}, {"month": "2017-03", "revenue": 456540.89, "bookings": 1564, "nights": 5125}, {"month": "2017-04", "revenue": 654847.88, "bookings": 1655, "nights": 5326}, {"month": "2017-05", "revenue": 786178.18, "bookings": 1923, "nights": 6122}, {"month": "2017-06", "revenue": 858564.62, "bookings": 1799, "nights": 6394}, {"month": "2017-07", "revenue": 1098580.67, "bookings": 1994, "nights": 7197}, {"month": "2017-08", "revenue": 1125707.17, "bookings": 1769, "nights": 6448}], "dow": [{"day": "Monday", "revenue": 2336787.35, "bookings": 5585}, {"day": "Tuesday", "revenue": 1720956.94, "bookings": 4373}, {"day": "Wednesday", "revenue": 1593809.55, "bookings": 4223}, {"day": "Thursday", "revenue": 1982609.06, "bookings": 5321}, {"day": "Friday", "revenue": 2002429.09, "bookings": 5689}, {"day": "Saturday", "revenue": 2044265.66, "bookings": 5286}, {"day": "Sunday", "revenue": 2033543.77, "bookings": 4914}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 1691322.89, "bookings": 4291}, {"country": "France", "code": "FRA", "revenue": 1883933.55, "bookings": 4530}, {"country": "Spain", "code": "ESP", "revenue": 1386941.83, "bookings": 3409}, {"country": "Germany", "code": "DEU", "revenue": 1087154.12, "bookings": 2804}, {"country": "Ireland", "code": "IRL", "revenue": 663780.97, "bookings": 1365}, {"country": "Italy", "code": "ITA", "revenue": 545970.23, "bookings": 1416}, {"country": "Belgium", "code": "BEL", "revenue": 511239.73, "bookings": 1239}], "roomTypes": [{"code": "A", "revenue": 7188685.02, "nights": 70385, "bookings": 22551, "pct": 52.42}, {"code": "D", "revenue": 3661281.4, "nights": 28650, "bookings": 7802, "pct": 26.7}, {"code": "E", "revenue": 1143670.32, "nights": 9062, "bookings": 2132, "pct": 8.34}, {"code": "F", "revenue": 663339.29, "nights": 3936, "bookings": 1155, "pct": 4.84}, {"code": "G", "revenue": 561569.19, "nights": 3195, "bookings": 797, "pct": 4.09}, {"code": "C", "revenue": 204270.71, "nights": 1180, "bookings": 263, "pct": 1.49}, {"code": "H", "revenue": 151825.08, "nights": 754, "bookings": 220, "pct": 1.11}, {"code": "B", "revenue": 139760.41, "nights": 1532, "bookings": 471, "pct": 1.02}], "hotelType": {"City Hotel": {"revenue": 8762543.52, "bookings": 24098, "nights": 75088, "adr": 116.697, "pct_bookings": 68.09, "pct_revenue": 63.89}, "Resort Hotel": {"revenue": 4951857.9, "bookings": 11293, "nights": 43606, "adr": 113.5591, "pct_bookings": 31.91, "pct_revenue": 36.11}}}, "Offline TA/TO": {"summary": {"revenue": 5659554.58, "bookings": 15616, "nights": 67427, "adr": 83.936, "median_rate": 81.0, "avg_los": 4.3178, "share_of_total": 21.77, "domestic_pct_revenue": 18.6, "intl_pct_revenue": 81.4, "domestic_pct_bookings": 23.37, "intl_pct_bookings": 76.63, "avg_booking_value_domestic": 288.4, "avg_booking_value_intl": 385.0, "rank": 2}, "monthly": [{"month": "2015-07", "revenue": 267295.64, "bookings": 465, "nights": 2502}, {"month": "2015-08", "revenue": 277378.87, "bookings": 452, "nights": 2383}, {"month": "2015-09", "revenue": 357799.79, "bookings": 990, "nights": 4400}, {"month": "2015-10", "revenue": 251096.48, "bookings": 1056, "nights": 3382}, {"month": "2015-11", "revenue": 92652.92, "bookings": 448, "nights": 1680}, {"month": "2015-12", "revenue": 110663.79, "bookings": 483, "nights": 1827}, {"month": "2016-01", "revenue": 67724.06, "bookings": 380, "nights": 1277}, {"month": "2016-02", "revenue": 124062.2, "bookings": 538, "nights": 2122}, {"month": "2016-03", "revenue": 157271.96, "bookings": 742, "nights": 2705}, {"month": "2016-04", "revenue": 180583.42, "bookings": 654, "nights": 2595}, {"month": "2016-05", "revenue": 229011.01, "bookings": 705, "nights": 3134}, {"month": "2016-06", "revenue": 415658.49, "bookings": 1110, "nights": 4891}, {"month": "2016-07", "revenue": 368488.01, "bookings": 673, "nights": 3471}, {"month": "2016-08", "revenue": 327773.06, "bookings": 579, "nights": 3033}, {"month": "2016-09", "revenue": 361255.01, "bookings": 897, "nights": 4064}, {"month": "2016-10", "revenue": 229642.9, "bookings": 855, "nights": 2840}, {"month": "2016-11", "revenue": 110676.32, "bookings": 460, "nights": 1820}, {"month": "2016-12", "revenue": 120422.05, "bookings": 412, "nights": 1593}, {"month": "2017-01", "revenue": 44749.55, "bookings": 184, "nights": 732}, {"month": "2017-02", "revenue": 97819.71, "bookings": 320, "nights": 1578}, {"month": "2017-03", "revenue": 136589.14, "bookings": 422, "nights": 2026}, {"month": "2017-04", "revenue": 162092.12, "bookings": 462, "nights": 1937}, {"month": "2017-05", "revenue": 232875.26, "bookings": 646, "nights": 3060}, {"month": "2017-06", "revenue": 253196.72, "bookings": 555, "nights": 2768}, {"month": "2017-07", "revenue": 299092.9, "bookings": 532, "nights": 2501}, {"month": "2017-08", "revenue": 383683.2, "bookings": 596, "nights": 3106}], "dow": [{"day": "Monday", "revenue": 909789.11, "bookings": 2258}, {"day": "Tuesday", "revenue": 693678.28, "bookings": 1915}, {"day": "Wednesday", "revenue": 636795.21, "bookings": 1890}, {"day": "Thursday", "revenue": 868632.89, "bookings": 2296}, {"day": "Friday", "revenue": 826727.99, "bookings": 2868}, {"day": "Saturday", "revenue": 817937.82, "bookings": 2179}, {"day": "Sunday", "revenue": 905993.28, "bookings": 2210}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 1665726.48, "bookings": 3053}, {"country": "France", "code": "FRA", "revenue": 668223.54, "bookings": 2219}, {"country": "Spain", "code": "ESP", "revenue": 262664.67, "bookings": 890}, {"country": "Germany", "code": "DEU", "revenue": 671132.68, "bookings": 2196}, {"country": "Ireland", "code": "IRL", "revenue": 266801.42, "bookings": 560}, {"country": "Italy", "code": "ITA", "revenue": 146607.78, "bookings": 503}, {"country": "Belgium", "code": "BEL", "revenue": 93722.7, "bookings": 214}], "roomTypes": [{"code": "A", "revenue": 3665601.02, "nights": 45564, "bookings": 12138, "pct": 64.77}, {"code": "D", "revenue": 1319488.8, "nights": 15180, "bookings": 2495, "pct": 23.31}, {"code": "E", "revenue": 580684.98, "nights": 5906, "bookings": 802, "pct": 10.26}, {"code": "C", "revenue": 41945.44, "nights": 343, "bookings": 64, "pct": 0.74}, {"code": "F", "revenue": 23143.76, "nights": 188, "bookings": 50, "pct": 0.41}, {"code": "G", "revenue": 15147.38, "nights": 83, "bookings": 19, "pct": 0.27}, {"code": "B", "revenue": 12835.6, "nights": 159, "bookings": 46, "pct": 0.23}, {"code": "H", "revenue": 707.6, "nights": 4, "bookings": 2, "pct": 0.01}], "hotelType": {"City Hotel": {"revenue": 2554041.33, "bookings": 9365, "nights": 28428, "adr": 89.8425, "pct_bookings": 59.97, "pct_revenue": 45.13}, "Resort Hotel": {"revenue": 3105513.25, "bookings": 6251, "nights": 38999, "adr": 79.6306, "pct_bookings": 40.03, "pct_revenue": 54.87}}}, "Direct": {"summary": {"revenue": 4099618.57, "bookings": 10463, "nights": 32584, "adr": 125.8169, "median_rate": 105.0, "avg_los": 3.1142, "share_of_total": 15.77, "domestic_pct_revenue": 38.05, "intl_pct_revenue": 61.95, "domestic_pct_bookings": 42.82, "intl_pct_bookings": 57.18, "avg_booking_value_domestic": 348.22, "avg_booking_value_intl": 424.47, "rank": 3}, "monthly": [{"month": "2015-07", "revenue": 157489.84, "bookings": 228, "nights": 1086}, {"month": "2015-08", "revenue": 304679.71, "bookings": 480, "nights": 2079}, {"month": "2015-09", "revenue": 146471.31, "bookings": 348, "nights": 1249}, {"month": "2015-10", "revenue": 82962.25, "bookings": 315, "nights": 895}, {"month": "2015-11", "revenue": 32236.01, "bookings": 207, "nights": 454}, {"month": "2015-12", "revenue": 84170.19, "bookings": 340, "nights": 859}, {"month": "2016-01", "revenue": 45129.49, "bookings": 332, "nights": 687}, {"month": "2016-02", "revenue": 76281.84, "bookings": 454, "nights": 1038}, {"month": "2016-03", "revenue": 89871.28, "bookings": 428, "nights": 1083}, {"month": "2016-04", "revenue": 104532.29, "bookings": 392, "nights": 1105}, {"month": "2016-05", "revenue": 111198.74, "bookings": 366, "nights": 1011}, {"month": "2016-06", "revenue": 136013.03, "bookings": 329, "nights": 1158}, {"month": "2016-07", "revenue": 265423.76, "bookings": 429, "nights": 1720}, {"month": "2016-08", "revenue": 367405.02, "bookings": 519, "nights": 1995}, {"month": "2016-09", "revenue": 156214.85, "bookings": 382, "nights": 1128}, {"month": "2016-10", "revenue": 110065.61, "bookings": 403, "nights": 1087}, {"month": "2016-11", "revenue": 76089.87, "bookings": 324, "nights": 883}, {"month": "2016-12", "revenue": 95981.91, "bookings": 341, "nights": 922}, {"month": "2017-01", "revenue": 74005.04, "bookings": 436, "nights": 991}, {"month": "2017-02", "revenue": 92692.82, "bookings": 507, "nights": 1158}, {"month": "2017-03", "revenue": 95536.51, "bookings": 439, "nights": 1127}, {"month": "2017-04", "revenue": 198658.63, "bookings": 486, "nights": 1633}, {"month": "2017-05", "revenue": 170790.79, "bookings": 409, "nights": 1262}, {"month": "2017-06", "revenue": 240672.49, "bookings": 477, "nights": 1685}, {"month": "2017-07", "revenue": 374554.76, "bookings": 564, "nights": 2214}, {"month": "2017-08", "revenue": 410490.53, "bookings": 528, "nights": 2075}], "dow": [{"day": "Monday", "revenue": 697517.63, "bookings": 1563}, {"day": "Tuesday", "revenue": 510384.43, "bookings": 1403}, {"day": "Wednesday", "revenue": 494622.53, "bookings": 1417}, {"day": "Thursday", "revenue": 564039.33, "bookings": 1545}, {"day": "Friday", "revenue": 520264.28, "bookings": 1539}, {"day": "Saturday", "revenue": 706537.45, "bookings": 1710}, {"day": "Sunday", "revenue": 606252.92, "bookings": 1286}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 333837.97, "bookings": 781}, {"country": "France", "code": "FRA", "revenue": 387142.18, "bookings": 922}, {"country": "Spain", "code": "ESP", "revenue": 401477.55, "bookings": 952}, {"country": "Germany", "code": "DEU", "revenue": 154358.84, "bookings": 379}, {"country": "Ireland", "code": "IRL", "revenue": 243572.33, "bookings": 423}, {"country": "Italy", "code": "ITA", "revenue": 90540.29, "bookings": 230}, {"country": "Belgium", "code": "BEL", "revenue": 115319.07, "bookings": 271}], "roomTypes": [{"code": "A", "revenue": 1532136.29, "nights": 14796, "bookings": 5653, "pct": 37.37}, {"code": "D", "revenue": 830093.83, "nights": 6435, "bookings": 1878, "pct": 20.25}, {"code": "E", "revenue": 652752.63, "nights": 4749, "bookings": 1217, "pct": 15.92}, {"code": "F", "revenue": 455599.68, "nights": 2877, "bookings": 731, "pct": 11.11}, {"code": "G", "revenue": 299003.92, "nights": 1565, "bookings": 406, "pct": 7.29}, {"code": "C", "revenue": 189501.54, "nights": 1082, "bookings": 255, "pct": 4.62}, {"code": "H", "revenue": 80977.09, "nights": 429, "bookings": 125, "pct": 1.98}, {"code": "B", "revenue": 58799.59, "nights": 646, "bookings": 194, "pct": 1.43}], "hotelType": {"City Hotel": {"revenue": 1657750.07, "bookings": 4935, "nights": 13625, "adr": 121.6697, "pct_bookings": 47.17, "pct_revenue": 40.44}, "Resort Hotel": {"revenue": 2441868.5, "bookings": 5528, "nights": 18959, "adr": 128.7973, "pct_bookings": 52.83, "pct_revenue": 59.56}}}, "Groups": {"summary": {"revenue": 1869156.56, "bookings": 7485, "nights": 24258, "adr": 77.0532, "median_rate": 73.33, "avg_los": 3.2409, "share_of_total": 7.19, "domestic_pct_revenue": 25.03, "intl_pct_revenue": 74.97, "domestic_pct_bookings": 27.92, "intl_pct_bookings": 72.08, "avg_booking_value_domestic": 223.82, "avg_booking_value_intl": 259.75, "rank": 4}, "monthly": [{"month": "2015-07", "revenue": 37512.79, "bookings": 239, "nights": 524}, {"month": "2015-08", "revenue": 52208.1, "bookings": 294, "nights": 774}, {"month": "2015-09", "revenue": 157117.25, "bookings": 539, "nights": 1570}, {"month": "2015-10", "revenue": 122810.41, "bookings": 556, "nights": 1815}, {"month": "2015-11", "revenue": 63522.4, "bookings": 308, "nights": 970}, {"month": "2015-12", "revenue": 70292.57, "bookings": 211, "nights": 667}, {"month": "2016-01", "revenue": 10685.0, "bookings": 42, "nights": 133}, {"month": "2016-02", "revenue": 21794.92, "bookings": 127, "nights": 348}, {"month": "2016-03", "revenue": 74102.25, "bookings": 305, "nights": 1041}, {"month": "2016-04", "revenue": 87417.06, "bookings": 431, "nights": 1248}, {"month": "2016-05", "revenue": 135644.66, "bookings": 602, "nights": 1717}, {"month": "2016-06", "revenue": 27614.35, "bookings": 145, "nights": 376}, {"month": "2016-07", "revenue": 18040.4, "bookings": 64, "nights": 166}, {"month": "2016-08", "revenue": 1984.8, "bookings": 9, "nights": 20}, {"month": "2016-09", "revenue": 106902.55, "bookings": 341, "nights": 1398}, {"month": "2016-10", "revenue": 129922.61, "bookings": 512, "nights": 1999}, {"month": "2016-11", "revenue": 34153.95, "bookings": 197, "nights": 488}, {"month": "2016-12", "revenue": 41432.95, "bookings": 151, "nights": 364}, {"month": "2017-01", "revenue": 59032.99, "bookings": 367, "nights": 908}, {"month": "2017-02", "revenue": 62706.99, "bookings": 315, "nights": 857}, {"month": "2017-03", "revenue": 155975.03, "bookings": 567, "nights": 2569}, {"month": "2017-04", "revenue": 165000.99, "bookings": 424, "nights": 1994}, {"month": "2017-05", "revenue": 104889.79, "bookings": 343, "nights": 1139}, {"month": "2017-06", "revenue": 56139.86, "bookings": 152, "nights": 525}, {"month": "2017-07", "revenue": 29650.18, "bookings": 109, "nights": 264}, {"month": "2017-08", "revenue": 42601.71, "bookings": 135, "nights": 384}], "dow": [{"day": "Monday", "revenue": 345556.09, "bookings": 1367}, {"day": "Tuesday", "revenue": 112070.53, "bookings": 406}, {"day": "Wednesday", "revenue": 353909.29, "bookings": 1401}, {"day": "Thursday", "revenue": 282245.93, "bookings": 1296}, {"day": "Friday", "revenue": 232086.05, "bookings": 904}, {"day": "Saturday", "revenue": 330284.37, "bookings": 1350}, {"day": "Sunday", "revenue": 213004.3, "bookings": 761}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 392977.92, "bookings": 1349}, {"country": "France", "code": "FRA", "revenue": 116531.66, "bookings": 572}, {"country": "Spain", "code": "ESP", "revenue": 171817.77, "bookings": 901}, {"country": "Germany", "code": "DEU", "revenue": 143513.98, "bookings": 588}, {"country": "Ireland", "code": "IRL", "revenue": 59634.63, "bookings": 176}, {"country": "Italy", "code": "ITA", "revenue": 59977.96, "bookings": 186}, {"country": "Belgium", "code": "BEL", "revenue": 23716.58, "bookings": 87}], "roomTypes": [{"code": "A", "revenue": 1600902.01, "nights": 20792, "bookings": 6750, "pct": 85.65}, {"code": "D", "revenue": 166178.61, "nights": 2314, "bookings": 471, "pct": 8.89}, {"code": "E", "revenue": 80127.91, "nights": 944, "bookings": 220, "pct": 4.29}, {"code": "G", "revenue": 9096.0, "nights": 76, "bookings": 14, "pct": 0.49}, {"code": "C", "revenue": 7248.03, "nights": 77, "bookings": 16, "pct": 0.39}, {"code": "F", "revenue": 2380.0, "nights": 25, "bookings": 7, "pct": 0.13}, {"code": "H", "revenue": 1680.0, "nights": 14, "bookings": 1, "pct": 0.09}, {"code": "B", "revenue": 1544.0, "nights": 16, "bookings": 6, "pct": 0.08}], "hotelType": {"City Hotel": {"revenue": 980788.5, "bookings": 4222, "nights": 11178, "adr": 87.7428, "pct_bookings": 56.41, "pct_revenue": 52.47}, "Resort Hotel": {"revenue": 888368.06, "bookings": 3263, "nights": 13080, "adr": 67.918, "pct_bookings": 43.59, "pct_revenue": 47.53}}}, "Corporate": {"summary": {"revenue": 577912.19, "bookings": 4226, "nights": 8459, "adr": 68.3192, "median_rate": 65.0, "avg_los": 2.0017, "share_of_total": 2.22, "domestic_pct_revenue": 60.14, "intl_pct_revenue": 39.86, "domestic_pct_bookings": 73.1, "intl_pct_bookings": 26.9, "avg_booking_value_domestic": 112.51, "avg_booking_value_intl": 202.6, "rank": 5}, "monthly": [{"month": "2015-07", "revenue": 4329.86, "bookings": 23, "nights": 36}, {"month": "2015-08", "revenue": 10411.85, "bookings": 62, "nights": 140}, {"month": "2015-09", "revenue": 23978.29, "bookings": 139, "nights": 274}, {"month": "2015-10", "revenue": 37886.4, "bookings": 204, "nights": 518}, {"month": "2015-11", "revenue": 58139.14, "bookings": 347, "nights": 1290}, {"month": "2015-12", "revenue": 16293.67, "bookings": 159, "nights": 272}, {"month": "2016-01", "revenue": 15178.51, "bookings": 174, "nights": 289}, {"month": "2016-02", "revenue": 28769.5, "bookings": 299, "nights": 480}, {"month": "2016-03", "revenue": 28517.62, "bookings": 258, "nights": 459}, {"month": "2016-04", "revenue": 15858.5, "bookings": 171, "nights": 263}, {"month": "2016-05", "revenue": 44756.92, "bookings": 234, "nights": 495}, {"month": "2016-06", "revenue": 18568.95, "bookings": 128, "nights": 220}, {"month": "2016-07", "revenue": 18075.4, "bookings": 124, "nights": 202}, {"month": "2016-08", "revenue": 11436.0, "bookings": 52, "nights": 123}, {"month": "2016-09", "revenue": 28952.59, "bookings": 149, "nights": 295}, {"month": "2016-10", "revenue": 23713.81, "bookings": 172, "nights": 296}, {"month": "2016-11", "revenue": 27781.4, "bookings": 218, "nights": 426}, {"month": "2016-12", "revenue": 17048.84, "bookings": 164, "nights": 267}, {"month": "2017-01", "revenue": 15542.68, "bookings": 178, "nights": 291}, {"month": "2017-02", "revenue": 20348.72, "bookings": 196, "nights": 428}, {"month": "2017-03", "revenue": 35371.7, "bookings": 225, "nights": 489}, {"month": "2017-04", "revenue": 14651.48, "bookings": 115, "nights": 217}, {"month": "2017-05", "revenue": 19265.99, "bookings": 144, "nights": 228}, {"month": "2017-06", "revenue": 22525.19, "bookings": 150, "nights": 235}, {"month": "2017-07", "revenue": 12810.19, "bookings": 85, "nights": 138}, {"month": "2017-08", "revenue": 7698.99, "bookings": 56, "nights": 88}], "dow": [{"day": "Monday", "revenue": 141483.51, "bookings": 895}, {"day": "Tuesday", "revenue": 126542.8, "bookings": 964}, {"day": "Wednesday", "revenue": 114440.96, "bookings": 1017}, {"day": "Thursday", "revenue": 66882.62, "bookings": 578}, {"day": "Friday", "revenue": 44692.96, "bookings": 352}, {"day": "Saturday", "revenue": 31398.26, "bookings": 175}, {"day": "Sunday", "revenue": 52471.08, "bookings": 245}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 27047.33, "bookings": 125}, {"country": "France", "code": "FRA", "revenue": 34393.35, "bookings": 173}, {"country": "Spain", "code": "ESP", "revenue": 21865.27, "bookings": 151}, {"country": "Germany", "code": "DEU", "revenue": 9460.03, "bookings": 50}, {"country": "Ireland", "code": "IRL", "revenue": 2793.0, "bookings": 9}, {"country": "Italy", "code": "ITA", "revenue": 14958.46, "bookings": 61}, {"country": "Belgium", "code": "BEL", "revenue": 7714.98, "bookings": 29}], "roomTypes": [{"code": "A", "revenue": 489865.63, "nights": 7462, "bookings": 3869, "pct": 84.76}, {"code": "E", "revenue": 48036.17, "nights": 582, "bookings": 144, "pct": 8.31}, {"code": "D", "revenue": 31324.25, "nights": 343, "bookings": 184, "pct": 5.42}, {"code": "G", "revenue": 3281.1, "nights": 26, "bookings": 12, "pct": 0.57}, {"code": "C", "revenue": 2503.0, "nights": 21, "bookings": 8, "pct": 0.43}, {"code": "H", "revenue": 1450.4, "nights": 9, "bookings": 2, "pct": 0.25}, {"code": "F", "revenue": 959.14, "nights": 9, "bookings": 5, "pct": 0.17}, {"code": "B", "revenue": 492.5, "nights": 7, "bookings": 2, "pct": 0.09}], "hotelType": {"City Hotel": {"revenue": 365675.4, "bookings": 2318, "nights": 4305, "adr": 84.942, "pct_bookings": 54.85, "pct_revenue": 63.28}, "Resort Hotel": {"revenue": 212236.79, "bookings": 1908, "nights": 4154, "adr": 51.0921, "pct_bookings": 45.15, "pct_revenue": 36.72}}}, "Aviation": {"summary": {"revenue": 70868.36, "bookings": 180, "nights": 692, "adr": 102.4109, "median_rate": 95.0, "avg_los": 3.8444, "share_of_total": 0.27, "domestic_pct_revenue": 26.16, "intl_pct_revenue": 73.84, "domestic_pct_bookings": 33.33, "intl_pct_bookings": 66.67, "avg_booking_value_domestic": 309.03, "avg_booking_value_intl": 436.06, "rank": 6}, "monthly": [{"month": "2015-07", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-08", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-09", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-10", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-11", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-12", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2016-01", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2016-02", "revenue": 352.0, "bookings": 1, "nights": 4}, {"month": "2016-03", "revenue": 355.0, "bookings": 3, "nights": 4}, {"month": "2016-04", "revenue": 8278.0, "bookings": 22, "nights": 86}, {"month": "2016-05", "revenue": 16240.0, "bookings": 18, "nights": 161}, {"month": "2016-06", "revenue": 1235.0, "bookings": 5, "nights": 13}, {"month": "2016-07", "revenue": 158.0, "bookings": 2, "nights": 2}, {"month": "2016-08", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2016-09", "revenue": 4120.0, "bookings": 11, "nights": 38}, {"month": "2016-10", "revenue": 8139.0, "bookings": 26, "nights": 77}, {"month": "2016-11", "revenue": 1278.0, "bookings": 8, "nights": 14}, {"month": "2016-12", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2017-01", "revenue": 1249.0, "bookings": 5, "nights": 15}, {"month": "2017-02", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2017-03", "revenue": 4681.7, "bookings": 13, "nights": 49}, {"month": "2017-04", "revenue": 7997.0, "bookings": 12, "nights": 74}, {"month": "2017-05", "revenue": 7936.0, "bookings": 27, "nights": 70}, {"month": "2017-06", "revenue": 7359.66, "bookings": 24, "nights": 69}, {"month": "2017-07", "revenue": 1490.0, "bookings": 3, "nights": 16}, {"month": "2017-08", "revenue": 0.0, "bookings": 0, "nights": 0}], "dow": [{"day": "Monday", "revenue": 27938.7, "bookings": 49}, {"day": "Tuesday", "revenue": 7670.0, "bookings": 27}, {"day": "Wednesday", "revenue": 6923.66, "bookings": 26}, {"day": "Thursday", "revenue": 6867.0, "bookings": 25}, {"day": "Friday", "revenue": 5820.0, "bookings": 17}, {"day": "Saturday", "revenue": 1590.0, "bookings": 5}, {"day": "Sunday", "revenue": 14059.0, "bookings": 31}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 665.0, "bookings": 3}, {"country": "France", "code": "FRA", "revenue": 8356.0, "bookings": 11}, {"country": "Spain", "code": "ESP", "revenue": 2225.0, "bookings": 8}, {"country": "Germany", "code": "DEU", "revenue": 2305.0, "bookings": 8}, {"country": "Ireland", "code": "IRL", "revenue": 3420.0, "bookings": 4}, {"country": "Italy", "code": "ITA", "revenue": 8378.7, "bookings": 20}, {"country": "Belgium", "code": "BEL", "revenue": 7424.0, "bookings": 21}], "roomTypes": [{"code": "D", "revenue": 37545.66, "nights": 347, "bookings": 81, "pct": 52.98}, {"code": "A", "revenue": 32560.7, "nights": 340, "bookings": 97, "pct": 45.95}, {"code": "E", "revenue": 762.0, "nights": 5, "bookings": 2, "pct": 1.08}, {"code": "F", "revenue": 0.0, "nights": 0, "bookings": 0, "pct": 0.0}, {"code": "G", "revenue": 0.0, "nights": 0, "bookings": 0, "pct": 0.0}, {"code": "C", "revenue": 0.0, "nights": 0, "bookings": 0, "pct": 0.0}, {"code": "H", "revenue": 0.0, "nights": 0, "bookings": 0, "pct": 0.0}, {"code": "B", "revenue": 0.0, "nights": 0, "bookings": 0, "pct": 0.0}], "hotelType": {"City Hotel": {"revenue": 70868.36, "bookings": 180, "nights": 692, "adr": 102.4109, "pct_bookings": 100.0, "pct_revenue": 100.0}, "Resort Hotel": {"revenue": 0, "bookings": 0, "nights": 0, "adr": 0, "pct_bookings": 0, "pct_revenue": 0}}}, "Complementary": {"summary": {"revenue": 4812.53, "bookings": 58, "nights": 145, "adr": 33.1899, "median_rate": 20.0, "avg_los": 2.5, "share_of_total": 0.02, "domestic_pct_revenue": 63.44, "intl_pct_revenue": 36.56, "domestic_pct_bookings": 74.14, "intl_pct_bookings": 25.86, "avg_booking_value_domestic": 71.0, "avg_booking_value_intl": 117.3, "rank": 7}, "monthly": [{"month": "2015-07", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-08", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2015-09", "revenue": 456.0, "bookings": 2, "nights": 6}, {"month": "2015-10", "revenue": 42.0, "bookings": 2, "nights": 10}, {"month": "2015-11", "revenue": 365.0, "bookings": 3, "nights": 6}, {"month": "2015-12", "revenue": 14.0, "bookings": 2, "nights": 8}, {"month": "2016-01", "revenue": 48.0, "bookings": 3, "nights": 5}, {"month": "2016-02", "revenue": 185.0, "bookings": 5, "nights": 8}, {"month": "2016-03", "revenue": 866.0, "bookings": 6, "nights": 15}, {"month": "2016-04", "revenue": 70.5, "bookings": 1, "nights": 3}, {"month": "2016-05", "revenue": 26.0, "bookings": 1, "nights": 5}, {"month": "2016-06", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2016-07", "revenue": 70.0, "bookings": 1, "nights": 2}, {"month": "2016-08", "revenue": 4.0, "bookings": 1, "nights": 2}, {"month": "2016-09", "revenue": 548.0, "bookings": 4, "nights": 8}, {"month": "2016-10", "revenue": 18.0, "bookings": 2, "nights": 4}, {"month": "2016-11", "revenue": 465.0, "bookings": 7, "nights": 14}, {"month": "2016-12", "revenue": 341.5, "bookings": 6, "nights": 14}, {"month": "2017-01", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2017-02", "revenue": 254.0, "bookings": 2, "nights": 7}, {"month": "2017-03", "revenue": 130.0, "bookings": 2, "nights": 2}, {"month": "2017-04", "revenue": 18.0, "bookings": 1, "nights": 2}, {"month": "2017-05", "revenue": 0.0, "bookings": 0, "nights": 0}, {"month": "2017-06", "revenue": 32.0, "bookings": 4, "nights": 8}, {"month": "2017-07", "revenue": 859.53, "bookings": 3, "nights": 16}, {"month": "2017-08", "revenue": 0.0, "bookings": 0, "nights": 0}], "dow": [{"day": "Monday", "revenue": 632.0, "bookings": 11}, {"day": "Tuesday", "revenue": 1819.03, "bookings": 12}, {"day": "Wednesday", "revenue": 943.0, "bookings": 10}, {"day": "Thursday", "revenue": 118.0, "bookings": 2}, {"day": "Friday", "revenue": 283.0, "bookings": 10}, {"day": "Saturday", "revenue": 593.5, "bookings": 6}, {"day": "Sunday", "revenue": 424.0, "bookings": 7}], "country": [{"country": "United Kingdom", "code": "GBR", "revenue": 781.55, "bookings": 2}, {"country": "France", "code": "FRA", "revenue": 116.0, "bookings": 1}, {"country": "Spain", "code": "ESP", "revenue": 116.0, "bookings": 2}, {"country": "Germany", "code": "DEU", "revenue": 295.0, "bookings": 3}, {"country": "Ireland", "code": "IRL", "revenue": 0.0, "bookings": 0}, {"country": "Italy", "code": "ITA", "revenue": 6.0, "bookings": 1}, {"country": "Belgium", "code": "BEL", "revenue": 8.0, "bookings": 1}], "roomTypes": [{"code": "A", "revenue": 3102.0, "nights": 92, "bookings": 38, "pct": 64.46}, {"code": "D", "revenue": 1075.53, "nights": 27, "bookings": 8, "pct": 22.35}, {"code": "E", "revenue": 258.0, "nights": 9, "bookings": 5, "pct": 5.36}, {"code": "F", "revenue": 134.0, "nights": 6, "bookings": 3, "pct": 2.78}, {"code": "G", "revenue": 127.0, "nights": 4, "bookings": 2, "pct": 2.64}, {"code": "C", "revenue": 108.0, "nights": 2, "bookings": 1, "pct": 2.24}, {"code": "B", "revenue": 8.0, "nights": 5, "bookings": 1, "pct": 0.17}, {"code": "H", "revenue": 0.0, "nights": 0, "bookings": 0, "pct": 0.0}], "hotelType": {"City Hotel": {"revenue": 2743.0, "bookings": 31, "nights": 70, "adr": 39.1857, "pct_bookings": 53.45, "pct_revenue": 57.0}, "Resort Hotel": {"revenue": 2069.53, "bookings": 27, "nights": 75, "adr": 27.5937, "pct_bookings": 46.55, "pct_revenue": 43.0}}}}};
 
 const fmtEUR = n => '€' + Math.round(n).toLocaleString('en-US');
 const fmtEUR2 = n => '€' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtInt = n => n.toLocaleString('en-US');
-const fmtCompact = n => Math.abs(n) >= 1e6 ? '€' + (n/1e6).toFixed(2) + 'M' : '€' + Math.round(n/1000) + 'K';
+function fmtCompact(n){
+  const abs = Math.abs(n);
+  if(abs >= 1e6) return '€' + (n/1e6).toFixed(2) + 'M';
+  if(abs >= 1e3) return '€' + Math.round(n/1e3) + 'K';
+  return '€' + Math.round(n);
+}
+function fmtK(n){
+  const abs = Math.abs(n);
+  if(abs >= 1e6){ const s=(n/1e6).toFixed(2).replace(/0$/,'').replace(/\.$/,''); return '€'+s+'M'; }
+  if(abs >= 1000){ const s=(n/1000).toFixed(1).replace(/\.0$/,''); return '€'+s+'K'; }
+  return '€' + Math.round(n).toLocaleString('en-US');
+}
+function pct1(n){ return Math.round(n*10)/10; }
+function monthName(ym){
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [y,m] = ym.split('-');
+  return names[parseInt(m,10)-1] + " '" + y.slice(2);
+}
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 /* ============================================================
-   STEP 1 — Render all plain-DOM content first (KPI numbers,
-   channel legend, room-type leaderboard). None of this depends
-   on Chart.js, so it always renders even if the chart library
-   fails to load from its CDN.
+   STEP 1 — Filter setup, legend, room leaderboard scaffolding.
+   None of this depends on Chart.js, so it always renders even
+   if the chart library fails to load from its CDN.
    ============================================================ */
-function countUp(el, target, isCurrency, suffix){
-  const dur = 900; const start = performance.now();
+
+/* Smoothly animates a number into a DOM element. Re-entrant: if a
+   newer call lands on the same element mid-animation, the older one
+   bails out instead of fighting over the textContent. */
+const _countTokens = {};
+function countUp(el, target, isCurrency){
+  const myToken = (_countTokens[el.id]||0) + 1;
+  _countTokens[el.id] = myToken;
+  const startVal = parseFloat((el.textContent||'0').replace(/[^0-9.\-]/g,'')) || 0;
+  const dur = 650; const start = performance.now();
   function tick(now){
+    if(_countTokens[el.id] !== myToken) return;
     const p = Math.min((now-start)/dur, 1);
     const eased = 1 - Math.pow(1-p, 3);
-    const val = target * eased;
-    el.textContent = (isCurrency ? fmtEUR(val) : fmtInt(Math.round(val))) + (suffix||'');
+    const val = startVal + (target-startVal) * eased;
+    el.textContent = isCurrency ? fmtEUR(val) : fmtInt(Math.round(val));
     if(p < 1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 }
 
-countUp(document.getElementById('kpi-revenue'), DATA.summary.total_revenue, true);
-countUp(document.getElementById('kpi-bookings'), DATA.summary.n_bookings, false);
-countUp(document.getElementById('kpi-nights'), DATA.summary.total_nights, false);
-document.getElementById('kpi-adr').textContent = fmtEUR2(DATA.summary.adr);
-
 /* ---------------- Channel filter (functional) ---------------- */
 const chanSelect = document.getElementById('channelFilter');
 const filterSub = document.getElementById('filterSub');
+const clearBtn = document.getElementById('clearFilterBtn');
 const optAll = document.createElement('option');
-optAll.value = 'all';
-optAll.textContent = `All ${DATA.category.length} channels`;
+optAll.value = 'ALL';
+optAll.textContent = `All ${CUBE.channelOrder.length} channels`;
 chanSelect.appendChild(optAll);
-DATA.category.forEach(c => {
+CUBE.channelOrder.forEach(name => {
   const o = document.createElement('option');
-  o.value = c.category; o.textContent = c.category;
+  o.value = name; o.textContent = name;
   chanSelect.appendChild(o);
 });
-function updateFilterSub(){
-  if(chanSelect.value === 'all'){
-    filterSub.textContent = `All ${DATA.category.length} channels · ${fmtInt(DATA.summary.n_bookings)} bookings · ${fmtEUR(DATA.summary.total_revenue)} total revenue`;
-  } else {
-    const c = DATA.category.find(x => x.category === chanSelect.value);
-    filterSub.textContent = `${c.category} · ${fmtInt(c.bookings)} bookings · ${fmtEUR(c.revenue)} revenue (${c.pct}% of total)`;
-  }
-}
-chanSelect.addEventListener('change', updateFilterSub);
-updateFilterSub();
+chanSelect.addEventListener('change', () => render(chanSelect.value));
+clearBtn.addEventListener('click', () => { chanSelect.value = 'ALL'; render('ALL'); });
 
-const monthLabels = DATA.monthly.map(d => {
-  const [y,m] = d.month.split('-');
-  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return names[parseInt(m,10)-1] + " '" + y.slice(2);
-});
+/* ---------------- Fixed display structures (axis order / legend
+   grouping never change across filters — only values + highlight
+   state do) ---------------- */
+const ALLCAT = CUBE.cube.ALL.category;
+const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc'];
+const catLabels = ALLCAT.map(d=>d.category);
+const catValues = ALLCAT.map(d=>d.revenue);
+const catPcts = ALLCAT.map(d=>d.pct);
+const catNameToIndex = {};
+catLabels.forEach((name,i) => catNameToIndex[name]=i);
 
-const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc','#94a3b8'];
-const topCats = DATA.category.slice(0,7);
-const restCats = DATA.category.slice(7);
-const catLabels = topCats.map(d=>d.category);
-const catValues = topCats.map(d=>d.revenue);
-const catPcts = topCats.map(d=>d.pct);
-if(restCats.length){
-  const otherPct = restCats.reduce((s,d)=>s+d.pct,0);
-  const otherRev = restCats.reduce((s,d)=>s+d.revenue,0);
-  catLabels.push(`Other (${restCats.length} channels)`);
-  catValues.push(otherRev);
-  catPcts.push(Math.round(otherPct*10)/10);
-}
+const monthLabels = CUBE.cube.ALL.monthly.map(d => monthName(d.month));
+const COUNTRY_LABELS = CUBE.cube.ALL.country.map(d=>d.country);
+const TOTAL_MONTHS = CUBE.cube.ALL.monthly.length;
 
+/* ---------------- Channel legend (clickable rows cross-filter) ---------------- */
 const legendEl = document.getElementById('chanLegend');
+const legendRows = [];
 catLabels.forEach((label, i) => {
   const row = document.createElement('div');
-  row.className = 'cat-row';
+  row.className = 'cat-row clickable';
   row.innerHTML = `<span class="cat-swatch" style="background:${catColors[i]}"></span><span class="cat-name">${label}</span><span class="cat-pct">${catPcts[i]}%</span>`;
+  row.addEventListener('click', () => { chanSelect.value = label; render(label); });
   legendEl.appendChild(row);
-});
-
-const roomList = document.getElementById('roomList');
-const maxRoomRev = Math.max(...DATA.roomTypes.map(p=>p.revenue));
-DATA.roomTypes.forEach((p, i) => {
-  const pct = (p.revenue / maxRoomRev) * 100;
-  const row = document.createElement('div');
-  row.className = 'lb-row';
-  row.innerHTML = `
-    <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
-    <div>
-      <div class="lb-name">Room Type ${p.code}</div>
-      <div class="lb-code">${fmtInt(p.nights)} nights &middot; ${fmtInt(p.bookings)} bookings</div>
-    </div>
-    <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
-    <div>
-      <div class="lb-value">${fmtEUR(p.revenue)}</div>
-      <div class="lb-sub">${((p.revenue/DATA.summary.total_revenue)*100).toFixed(1)}% of revenue</div>
-    </div>
-  `;
-  roomList.appendChild(row);
+  legendRows.push(row);
 });
 
 /* ============================================================
-   STEP 2 — Charts. Guarded so a CDN hiccup can't blank the rest
-   of the page; each chart is also wrapped individually so one
-   bad render doesn't take the others down with it.
+   STEP 2 — Charts. Created once with fixed labels/colors; render()
+   below mutates only the values (and, for the channel donut, the
+   highlight state) on every filter change via .update(). Each is
+   wrapped individually so one bad render doesn't take the others
+   down with it.
    ============================================================ */
 function showChartFallback(canvas, msg){
   const box = canvas.closest('.chart-box');
   if(box) box.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5e6b85;font-size:12px;text-align:center;padding:0 20px;">${msg}</div>`;
 }
+
+let chartMonthly=null, chartChannel=null, chartCountry=null, chartDow=null;
 
 if (typeof Chart === 'undefined') {
   document.querySelectorAll('canvas').forEach(c => showChartFallback(c, 'Chart library failed to load — check your internet connection and reload.'));
@@ -570,14 +506,14 @@ Chart.defaults.font.size = 11.5;
 
 /* ---------------- Monthly combo chart ---------------- */
 try {
-new Chart(document.getElementById('chartMonthly'), {
+chartMonthly = new Chart(document.getElementById('chartMonthly'), {
   data: {
     labels: monthLabels,
     datasets: [
       {
         type: 'bar',
         label: 'Revenue',
-        data: DATA.monthly.map(d => d.revenue),
+        data: CUBE.cube.ALL.monthly.map(d => d.revenue),
         backgroundColor: (ctx) => {
           const g = ctx.chart.ctx.createLinearGradient(0,0,0,260);
           g.addColorStop(0, 'rgba(139,107,255,0.95)');
@@ -591,7 +527,7 @@ new Chart(document.getElementById('chartMonthly'), {
       {
         type: 'line',
         label: 'Bookings',
-        data: DATA.monthly.map(d => d.bookings),
+        data: CUBE.cube.ALL.monthly.map(d => d.bookings),
         borderColor: '#ff7ab8',
         backgroundColor: '#ff7ab8',
         pointRadius: 3,
@@ -622,18 +558,20 @@ new Chart(document.getElementById('chartMonthly'), {
     }
   }
 });
-} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), "Couldn't render this chart."); }
 
-/* ---------------- Channel doughnut ---------------- */
+/* ---------------- Channel doughnut (own dimension — highlight/dim) ---------------- */
 try {
-new Chart(document.getElementById('chartChannel'), {
+chartChannel = new Chart(document.getElementById('chartChannel'), {
   type: 'doughnut',
-  data: {
-    labels: catLabels,
-    datasets: [{ data: catValues, backgroundColor: catColors, borderColor: '#0a0e17', borderWidth:3, hoverOffset:6 }]
-  },
+  data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: catColors.slice(), borderColor: '#0a0e17', borderWidth:3, hoverOffset:6, offset: catLabels.map(()=>0) }] },
   options: {
     responsive:true, maintainAspectRatio:false, cutout:'68%',
+    onClick: (evt, elements) => {
+      if(!elements.length) return;
+      const idx = elements[0].index;
+      chanSelect.value = catLabels[idx]; render(catLabels[idx]);
+    },
     plugins: {
       legend:{display:false},
       tooltip:{
@@ -644,16 +582,16 @@ new Chart(document.getElementById('chartChannel'), {
     }
   }
 });
-} catch(e) { console.error('Channel chart failed:', e); showChartFallback(document.getElementById('chartChannel'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Channel chart failed:', e); showChartFallback(document.getElementById('chartChannel'), "Couldn't render this chart."); }
 
-/* ---------------- Top non-domestic countries bar ---------------- */
+/* ---------------- Top non-domestic countries bar (different dimension — full recompute) ---------------- */
 try {
-new Chart(document.getElementById('chartCountry'), {
+chartCountry = new Chart(document.getElementById('chartCountry'), {
   type: 'bar',
   data: {
-    labels: DATA.countries.map(d=>d.country),
+    labels: COUNTRY_LABELS,
     datasets: [{
-      data: DATA.countries.map(d=>d.revenue),
+      data: CUBE.cube.ALL.country.map(d=>d.revenue),
       backgroundColor: '#29d6e8',
       borderRadius: 5,
       barThickness: 14
@@ -675,17 +613,17 @@ new Chart(document.getElementById('chartCountry'), {
     }
   }
 });
-} catch(e) { console.error('Country chart failed:', e); showChartFallback(document.getElementById('chartCountry'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Country chart failed:', e); showChartFallback(document.getElementById('chartCountry'), "Couldn't render this chart."); }
 
-/* ---------------- Bookings by day of week bar ---------------- */
+/* ---------------- Bookings by day of week bar (different dimension — full recompute) ---------------- */
 try {
-new Chart(document.getElementById('chartDow'), {
+chartDow = new Chart(document.getElementById('chartDow'), {
   type: 'bar',
   data: {
-    labels: DATA.dow.map(d=>d.day.slice(0,3)),
+    labels: CUBE.cube.ALL.dow.map(d=>d.day.slice(0,3)),
     datasets: [{
-      data: DATA.dow.map(d=>d.bookings),
-      backgroundColor: DATA.dow.map(d=> d.day==='Monday' ? '#ff7ab8' : 'rgba(139,107,255,0.75)'),
+      data: CUBE.cube.ALL.dow.map(d=>d.bookings),
+      backgroundColor: CUBE.cube.ALL.dow.map(d=> d.day==='Monday' ? '#ff7ab8' : 'rgba(139,107,255,0.75)'),
       borderRadius: 7,
       maxBarThickness: 40
     }]
@@ -706,9 +644,242 @@ new Chart(document.getElementById('chartDow'), {
     }
   }
 });
-} catch(e) { console.error('Day-of-week chart failed:', e); showChartFallback(document.getElementById('chartDow'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Day-of-week chart failed:', e); showChartFallback(document.getElementById('chartDow'), "Couldn't render this chart."); }
 
 } // end Chart-available guard
+
+/* ============================================================
+   Insight generators — formula-driven so every one of the 8
+   filter states (ALL + 7 channels) gets an accurate, sensibly
+   phrased sentence, not just a couple of hand-picked ones.
+   ============================================================ */
+function renderSeasonInsight(monthlyArr, filterKey){
+  const titleEl = document.getElementById('insight1Title');
+  const textEl = document.getElementById('insight1Text');
+  let maxIdx = 0;
+  for(let i=1;i<monthlyArr.length;i++) if(monthlyArr[i].revenue > monthlyArr[maxIdx].revenue) maxIdx = i;
+  const peak = monthlyArr[maxIdx];
+  const subject = filterKey==='ALL' ? '' : ` for ${filterKey}`;
+  if(peak.revenue <= 0){
+    titleEl.textContent = 'No revenue recorded';
+    textEl.innerHTML = `No monthly revenue is recorded${subject}.`;
+    return;
+  }
+  let minVal = Infinity, minIdx = -1;
+  monthlyArr.forEach((d,i) => { if(d.revenue>0 && d.revenue<minVal){ minVal=d.revenue; minIdx=i; } });
+  const peakLabel = monthName(peak.month);
+  let ratioClause = '', ratio = null;
+  if(minIdx>=0 && minIdx!==maxIdx){
+    ratio = peak.revenue/minVal;
+    const lowLabel = monthName(monthlyArr[minIdx].month);
+    ratioClause = ` &mdash; more than <b>${ratio.toFixed(1)}x</b> ${lowLabel}'s low of <b>${fmtK(minVal)}</b>`;
+  }
+  let title;
+  if(filterKey === 'ALL'){
+    title = 'Sharp summer seasonality';
+    textEl.innerHTML = `<b>August</b> is the strongest month every year, peaking at <b>${fmtK(peak.revenue)}</b> in ${peakLabel}${ratioClause}.`;
+  } else {
+    if(ratio === null) title = `Strongest month${subject}`;
+    else if(ratio >= 15) title = `Extreme seasonal swing${subject}`;
+    else if(ratio >= 8) title = `Sharp seasonal peak${subject}`;
+    else if(ratio >= 3) title = `Strong seasonal peak${subject}`;
+    else title = `Steady seasonal peak${subject}`;
+    textEl.innerHTML = `<b>${peakLabel}</b> is the strongest month${subject}, reaching <b>${fmtK(peak.revenue)}</b>${ratioClause}.`;
+  }
+  titleEl.textContent = title;
+}
+
+function renderChannelInsight(filterKey, summary){
+  const titleEl = document.getElementById('insight2Title');
+  const textEl = document.getElementById('insight2Text');
+  if(filterKey === 'ALL'){
+    const top = ALLCAT[0];
+    const rest = ALLCAT.slice(1);
+    const restTotal = rest.reduce((s,c)=>s+c.revenue,0);
+    const dominant = top.revenue > restTotal;
+    titleEl.textContent = dominant ? `${top.category} dominates` : `${top.category} leads`;
+    textEl.innerHTML = `<b>${top.category}</b> brings in <b>${fmtK(top.revenue)}</b> (<b>${pct1(top.pct)}%</b>) of revenue${dominant ? ` &mdash; more than the other ${rest.length} channels combined.` : '.'}`;
+    return;
+  }
+  const rank = summary.rank, total = CUBE.channelOrder.length, share = pct1(summary.share_of_total);
+  let title;
+  if(rank === 1) title = `${filterKey} is the leading channel`;
+  else if(rank <= 3) title = `${filterKey} is a major channel`;
+  else if(rank <= 5) title = `${filterKey} is a mid-tier channel`;
+  else title = `${filterKey} is a minor channel`;
+  titleEl.textContent = title;
+  textEl.innerHTML = `<b>${filterKey}</b> ranks <b>#${rank}</b> of ${total} booking channels, generating <b>${share}%</b> of total revenue (<b>${fmtEUR(summary.revenue)}</b>).`;
+}
+
+function renderHotelTypeInsight(hotelType, filterKey){
+  const titleEl = document.getElementById('insight3Title');
+  const textEl = document.getElementById('insight3Text');
+  const subject = filterKey==='ALL' ? '' : ` for ${filterKey}`;
+  const city = hotelType ? hotelType['City Hotel'] : null;
+  const resort = hotelType ? hotelType['Resort Hotel'] : null;
+  if(!city || !resort || (city.bookings+resort.bookings)===0){
+    titleEl.textContent = 'No bookings recorded';
+    textEl.innerHTML = `No hotel-type breakdown is available${subject}.`;
+    return;
+  }
+  const leader = city.bookings >= resort.bookings ? city : resort;
+  const other = leader === city ? resort : city;
+  const leaderName = leader === city ? 'City Hotel' : 'Resort Hotel';
+  const otherName = leader === city ? 'Resort' : 'City';
+  const higherAdr = leader.adr >= other.adr;
+  titleEl.textContent = `${leaderName} leads on volume${higherAdr ? ' and rate' : ''}${subject}`;
+  textEl.innerHTML = `<b>${leaderName}</b> drives <b>${pct1(leader.pct_bookings)}%</b> of bookings${subject} at ${higherAdr ? 'a higher' : 'a lower'} ADR (<b>${fmtEUR2(leader.adr)}</b> vs ${otherName}'s <b>${fmtEUR2(other.adr)}</b>), for <b>${pct1(leader.pct_revenue)}%</b> of revenue.`;
+}
+
+/* ---------------- Own-dimension highlight/dim for the channel donut ---------------- */
+function applyChannelHighlight(filterKey){
+  if(filterKey === 'ALL'){
+    legendRows.forEach(r => r.classList.remove('cat-row-dim','cat-row-active'));
+    if(chartChannel){
+      chartChannel.data.datasets[0].backgroundColor = catColors.slice();
+      chartChannel.data.datasets[0].offset = catLabels.map(()=>0);
+      chartChannel.update();
+    }
+    return;
+  }
+  const activeIdx = catNameToIndex[filterKey];
+  legendRows.forEach((r,i) => {
+    r.classList.toggle('cat-row-active', i===activeIdx);
+    r.classList.toggle('cat-row-dim', i!==activeIdx);
+  });
+  if(chartChannel){
+    chartChannel.data.datasets[0].backgroundColor = catColors.map((c,i)=> i===activeIdx ? c : hexToRgba(c,0.22));
+    chartChannel.data.datasets[0].offset = catLabels.map((_,i)=> i===activeIdx ? 12 : 0);
+    chartChannel.update();
+  }
+}
+
+/* ---------------- Different-dimension full recompute: domestic/international split + country bar ---------------- */
+function renderCountrySection(filterKey, summary, countryArr){
+  if(chartCountry){
+    const map = {};
+    countryArr.forEach(c => map[c.country] = c.revenue);
+    chartCountry.data.datasets[0].data = COUNTRY_LABELS.map(name => map[name] || 0);
+    chartCountry.update();
+  }
+  const domPct = pct1(summary.domestic_pct_revenue), intlPct = pct1(summary.intl_pct_revenue);
+  document.getElementById('splitDomFill').style.width = domPct + '%';
+  document.getElementById('splitIntlFill').style.width = intlPct + '%';
+  document.getElementById('splitLabels').innerHTML = `<span>🇵🇹 Portugal (domestic) &middot; <b>${domPct}%</b></span><span><b>${intlPct}%</b> &middot; International</span>`;
+
+  const noteEl = document.getElementById('marketNote');
+  const avgDom = summary.avg_booking_value_domestic, avgIntl = summary.avg_booking_value_intl;
+  if(avgDom > 0 && avgIntl > 0){
+    const premium = ((avgIntl/avgDom)-1)*100;
+    const domBookPct = pct1(summary.domestic_pct_bookings);
+    if(premium >= 1){
+      noteEl.innerHTML = `International guests average <b>${fmtEUR2(avgIntl)}</b> per booking vs <b>${fmtEUR2(avgDom)}</b> for domestic guests &mdash; a <b>${Math.round(premium)}%</b> premium despite Portugal supplying just <b>${domBookPct}%</b> of bookings.`;
+    } else if(premium <= -1){
+      noteEl.innerHTML = `Domestic guests average <b>${fmtEUR2(avgDom)}</b> per booking vs <b>${fmtEUR2(avgIntl)}</b> for international guests &mdash; a <b>${Math.round(Math.abs(premium))}%</b> premium, even though Portugal supplies just <b>${domBookPct}%</b> of bookings.`;
+    } else {
+      noteEl.innerHTML = `International and domestic guests spend about the same per booking (<b>${fmtEUR2(avgIntl)}</b> vs <b>${fmtEUR2(avgDom)}</b>), with Portugal supplying <b>${domBookPct}%</b> of bookings.`;
+    }
+  } else {
+    noteEl.innerHTML = `Booking value data is incomplete${filterKey==='ALL'?'':` for ${filterKey}`}.`;
+  }
+}
+
+function renderDow(dowArr, filterKey){
+  const totalBookings = dowArr.reduce((s,d)=>s+d.bookings,0);
+  let peakIdx = 0;
+  dowArr.forEach((d,i) => { if(d.bookings > dowArr[peakIdx].bookings) peakIdx = i; });
+  const peak = dowArr[peakIdx];
+  if(chartDow){
+    chartDow.data.datasets[0].data = dowArr.map(d=>d.bookings);
+    chartDow.data.datasets[0].backgroundColor = dowArr.map(d=> d.day===peak.day ? '#ff7ab8' : 'rgba(139,107,255,0.75)');
+    chartDow.update();
+  }
+  if(totalBookings <= 0){
+    document.getElementById('dowCardNote').textContent = `Arrival date &middot; no bookings recorded${filterKey==='ALL'?'':` for ${filterKey}`}`;
+    return;
+  }
+  const subject = filterKey==='ALL' ? 'the busiest day to check in' : `${filterKey}'s busiest check-in day`;
+  document.getElementById('dowCardNote').textContent = `Arrival date · ${peak.day} is ${subject}`;
+}
+
+function renderRooms(roomTypesArr, sliceRevenue, filterKey){
+  const listEl = document.getElementById('roomList');
+  listEl.innerHTML = '';
+  document.getElementById('roomCardTitle').textContent = filterKey==='ALL' ? 'Top 8 Room Types by Revenue' : `Top Room Types by Revenue — ${filterKey}`;
+  if(!roomTypesArr.length || sliceRevenue<=0){
+    listEl.innerHTML = `<div style="padding:20px 0;color:var(--text-faint);font-size:12.5px;">No room-level bookings recorded for this channel.</div>`;
+    return;
+  }
+  const maxRev = Math.max(...roomTypesArr.map(p=>p.revenue));
+  roomTypesArr.forEach((p, i) => {
+    const pct = maxRev>0 ? (p.revenue / maxRev) * 100 : 0;
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    row.innerHTML = `
+      <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
+      <div>
+        <div class="lb-name">Room Type ${p.code}</div>
+        <div class="lb-code">${fmtInt(p.nights)} nights &middot; ${fmtInt(p.bookings)} bookings</div>
+      </div>
+      <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+      <div>
+        <div class="lb-value">${fmtEUR(p.revenue)}</div>
+        <div class="lb-sub">${((p.revenue/sliceRevenue)*100).toFixed(1)}% of revenue</div>
+      </div>
+    `;
+    listEl.appendChild(row);
+  });
+}
+
+/* ============================================================
+   render() — the single entry point that recomputes every KPI,
+   insight, chart, and leaderboard for a given filter value.
+   ============================================================ */
+function render(filterKey){
+  const slice = CUBE.cube[filterKey];
+  if(!slice) return;
+  const isFiltered = filterKey !== 'ALL';
+  const summary = slice.summary;
+
+  clearBtn.style.display = isFiltered ? '' : 'none';
+  if(!isFiltered){
+    filterSub.textContent = `All ${CUBE.channelOrder.length} channels · ${fmtInt(summary.bookings)} bookings · ${fmtEUR(summary.revenue)} total revenue`;
+  } else {
+    filterSub.textContent = `${filterKey} · rank #${summary.rank} of ${CUBE.channelOrder.length} · ${fmtInt(summary.bookings)} bookings · ${fmtEUR(summary.revenue)} revenue (${pct1(summary.share_of_total)}% of total)`;
+  }
+
+  countUp(document.getElementById('kpi-revenue'), summary.revenue, true);
+  countUp(document.getElementById('kpi-bookings'), summary.bookings, false);
+  countUp(document.getElementById('kpi-nights'), summary.nights, false);
+  document.getElementById('kpi-adr').textContent = fmtEUR2(summary.adr);
+
+  document.getElementById('kpi-revenue-foot').textContent = `Across ${fmtInt(summary.bookings)} bookings`;
+  const perMonth = summary.bookings / TOTAL_MONTHS;
+  document.getElementById('kpi-bookings-foot').textContent = perMonth >= 0.5
+    ? `~${perMonth < 10 ? perMonth.toFixed(1) : fmtInt(Math.round(perMonth))} bookings / month avg`
+    : `${fmtInt(summary.bookings)} booking${summary.bookings===1?'':'s'} total`;
+  document.getElementById('kpi-nights-foot').textContent = `Avg stay: ${summary.avg_los.toFixed(1)} nights`;
+  document.getElementById('kpi-adr-foot').textContent = `Median nightly rate: ${fmtEUR2(summary.median_rate)}`;
+
+  renderSeasonInsight(slice.monthly, filterKey);
+  renderChannelInsight(filterKey, summary);
+  renderHotelTypeInsight(slice.hotelType, filterKey);
+
+  if(chartMonthly){
+    chartMonthly.data.datasets[0].data = slice.monthly.map(d=>d.revenue);
+    chartMonthly.data.datasets[1].data = slice.monthly.map(d=>d.bookings);
+    chartMonthly.update();
+  }
+  document.getElementById('monthlyCardNote').textContent = isFiltered ? `Jul 2015–Aug 2017 · ${filterKey} trend` : 'Jul 2015–Aug 2017 · strong summer-peaking seasonality';
+
+  applyChannelHighlight(filterKey);
+  renderCountrySection(filterKey, summary, slice.country);
+  renderDow(slice.dow, filterKey);
+  renderRooms(slice.roomTypes, summary.revenue, filterKey);
+}
+
+render('ALL');
+
 </script>
 </body>
 </html>

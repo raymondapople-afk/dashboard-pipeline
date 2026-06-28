@@ -121,9 +121,14 @@
 
   /* ---------- Category legend list ---------- */
   .cat-legend{display:flex; flex-direction:column; gap:11px; margin-top:14px;}
-  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .cat-row{display:flex; align-items:center; gap:10px; font-size:12.5px; padding:3px 5px; margin:-3px -5px; border-radius:7px; transition:opacity .2s, background .2s;}
+  .cat-row.clickable{cursor:pointer;}
+  .cat-row.clickable:hover{background:rgba(255,255,255,0.05);}
+  .cat-row.cat-row-dim{opacity:0.38;}
+  .cat-row.cat-row-active{opacity:1; background:rgba(255,255,255,0.06);}
+  .cat-row.cat-row-active .cat-name{color:var(--text); font-weight:700;}
   .cat-swatch{width:9px; height:9px; border-radius:3px; flex:none;}
-  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cat-name{flex:1; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color .2s;}
   .cat-pct{font-weight:700; font-family:'JetBrains Mono', monospace; color:var(--text);}
 
   /* ---------- Split bar (sized vs unsized) ---------- */
@@ -183,6 +188,12 @@
   .filter-sub{font-size:12.5px; color:var(--text-faint); margin-left:auto; font-family:'JetBrains Mono', monospace;}
   .market-note{font-size:12.5px; color:var(--text-dim); margin-top:14px; padding-top:13px; border-top:1px solid rgba(255,255,255,0.06); min-height:16px;}
   .market-note b{color:var(--text);}
+  .clear-filter-btn{
+    font-size:11.5px; font-weight:600; color:var(--text-dim); background:rgba(255,255,255,0.06);
+    border:1px solid var(--card-border); padding:5px 12px; border-radius:999px; cursor:pointer;
+    font-family:'Inter',system-ui,sans-serif; transition:all .15s;
+  }
+  .clear-filter-btn:hover{color:var(--text); border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.1);}
 
   @media (max-width:680px){
     .filter-bar{flex-direction:column; align-items:flex-start;}
@@ -250,6 +261,7 @@
   <div class="filter-bar fade-in">
     <div class="filter-label">🔎 Filter by category</div>
     <select id="categoryFilter" class="country-select"></select>
+    <button class="clear-filter-btn" id="clearFilterBtn" style="display:none;">✕ Clear filter</button>
     <div class="filter-sub" id="filterSub">All 9 categories &middot; 149,116 orders &middot; $698,812 total revenue</div>
   </div>
 
@@ -281,22 +293,22 @@
     <div class="insight-card">
       <div class="insight-emoji">📈</div>
       <div>
-        <div class="insight-title">Sales nearly doubled in H1</div>
-        <div class="insight-text">Revenue grew from <b>$81.7K</b> in January to <b>$166.5K</b> in June &mdash; up <b>+103.8%</b> over six months, including <b>+6.2%</b> month-over-month in June.</div>
+        <div class="insight-title" id="insight1Title">Sales nearly doubled in H1</div>
+        <div class="insight-text" id="insight1Text">Revenue grew from <b>$81.7K</b> in January to <b>$166.5K</b> in June &mdash; up <b>+103.8%</b> over six months, including <b>+6.2%</b> month-over-month in June.</div>
       </div>
     </div>
     <div class="insight-card">
       <div class="insight-emoji">☕</div>
       <div>
-        <div class="insight-title">Coffee and tea drive two-thirds of sales</div>
-        <div class="insight-text"><b>Coffee</b> ($270K) and <b>Tea</b> ($196K) together make up <b>66.7%</b> of revenue, with Bakery a distant third at <b>11.8%</b>.</div>
+        <div class="insight-title" id="insight2Title">Coffee and tea drive two-thirds of sales</div>
+        <div class="insight-text" id="insight2Text"><b>Coffee</b> ($270K) and <b>Tea</b> ($196K) together make up <b>66.7%</b> of revenue, with Bakery a distant third at <b>11.8%</b>.</div>
       </div>
     </div>
     <div class="insight-card">
       <div class="insight-emoji">⏰</div>
       <div>
-        <div class="insight-title">The morning rush is king</div>
-        <div class="insight-text">The <b>7&ndash;10am</b> rush accounts for <b>45.8%</b> of all revenue, peaking at <b>10am</b> with <b>$88.7K</b> across 18,545 orders.</div>
+        <div class="insight-title" id="insight3Title">The morning rush is king</div>
+        <div class="insight-text" id="insight3Text">The <b>7&ndash;10am</b> rush accounts for <b>45.8%</b> of all revenue, peaking at <b>10am</b> with <b>$88.7K</b> across 18,545 orders.</div>
       </div>
     </div>
   </div>
@@ -307,7 +319,7 @@
       <div class="card-head">
         <div>
           <div class="card-title">Monthly Revenue &amp; Orders</div>
-          <div class="card-note">Jan&ndash;Jun 2023 &middot; steady month-over-month growth</div>
+          <div class="card-note" id="monthlyCardNote">Jan&ndash;Jun 2023 &middot; steady month-over-month growth</div>
         </div>
         <div class="legend-chip">📊 Revenue (bars) &middot; Orders (line)</div>
       </div>
@@ -317,7 +329,7 @@
       <div class="card-head">
         <div>
           <div class="card-title">Revenue by Category</div>
-          <div class="card-note">Share of total revenue</div>
+          <div class="card-note">Share of total revenue &middot; click a row to filter</div>
         </div>
       </div>
       <div class="chart-box h-230"><canvas id="chartCategory"></canvas></div>
@@ -334,16 +346,16 @@
           <div class="card-note">Revenue by drink size &amp; menu type</div>
         </div>
       </div>
-      <div class="split-labels"><span>☕ Sized drinks (Sm/Rg/Lg) &middot; <b>70.1%</b></span><span><b>29.9%</b> &middot; Bakery &amp; packaged</span></div>
-      <div class="split-bar"><div class="split-uk" style="width:70.1%"></div><div class="split-intl" style="width:29.9%"></div></div>
+      <div class="split-labels" id="sizeSplitLabels"><span>☕ Sized drinks (Sm/Rg/Lg) &middot; <b>70.1%</b></span><span><b>29.9%</b> &middot; Bakery &amp; packaged</span></div>
+      <div class="split-bar"><div class="split-uk" id="sizeSplitFill" style="width:70.1%"></div><div class="split-intl" id="sizeSplitFill2" style="width:29.9%"></div></div>
       <div class="chart-box h-230" style="margin-top:18px;"><canvas id="chartSize"></canvas></div>
-      <div class="market-note">Large pours average <b>$5.30</b>/order &mdash; 59% more than Small (<b>$3.33</b>), the clearest upsell signal on the menu.</div>
+      <div class="market-note" id="sizeNote">Large pours average <b>$5.30</b>/order &mdash; 59% more than Small (<b>$3.33</b>), the clearest upsell signal on the menu.</div>
     </div>
     <div class="card col-7">
       <div class="card-head">
         <div>
           <div class="card-title">Orders by Hour of Day</div>
-          <div class="card-note">Counter open 6am&ndash;8pm &middot; 10am is the daily peak</div>
+          <div class="card-note" id="hourCardNote">Counter open 6am&ndash;8pm &middot; 10am is the daily peak</div>
         </div>
       </div>
       <div class="chart-box h-260"><canvas id="chartHour"></canvas></div>
@@ -355,8 +367,8 @@
     <div class="card col-12">
       <div class="card-head">
         <div>
-          <div class="card-title">Top 8 Products by Revenue</div>
-          <div class="card-note">Includes drink size variants (Sm/Rg/Lg)</div>
+          <div class="card-title" id="productsCardTitle">Top 8 Products by Revenue</div>
+          <div class="card-note" id="productsCardNote">Includes drink size variants (Sm/Rg/Lg)</div>
         </div>
       </div>
       <div class="lb-head"><span>#</span><span>Product</span><span>Revenue share</span><span style="text-align:right;">Revenue</span></div>
@@ -372,171 +384,125 @@
 </div>
 
 <script>
-const DATA = {
-  "summary": {
-    "total_revenue": 698812.33, "n_orders": 149116, "total_units": 214470, "n_products": 80,
-    "aov": 4.686367190643527, "median_order": 3.75, "items_per_order": 1.438518,
-    "date_start": "2023-01-01", "date_end": "2023-06-30",
-    "avg_orders_per_day": 823.8453038674033,
-    "sized_pct": 70.1, "unsized_pct": 29.9
-  },
-  "monthly": [
-    {"month":"2023-01","revenue":81677.74,"orders":17314},
-    {"month":"2023-02","revenue":76145.19,"orders":16359},
-    {"month":"2023-03","revenue":98834.68,"orders":21229},
-    {"month":"2023-04","revenue":118941.08,"orders":25335},
-    {"month":"2023-05","revenue":156727.76,"orders":33527},
-    {"month":"2023-06","revenue":166485.88,"orders":35352}
-  ],
-  "category": [
-    {"category":"Coffee","revenue":269952.45,"orders":58416,"pct":38.6},
-    {"category":"Tea","revenue":196405.95,"orders":45449,"pct":28.1},
-    {"category":"Bakery","revenue":82315.64,"orders":22796,"pct":11.8},
-    {"category":"Drinking Chocolate","revenue":72416.00,"orders":11468,"pct":10.4},
-    {"category":"Coffee beans","revenue":40085.25,"orders":1753,"pct":5.7},
-    {"category":"Branded","revenue":13607.00,"orders":747,"pct":1.9},
-    {"category":"Loose Tea","revenue":11213.60,"orders":1210,"pct":1.6},
-    {"category":"Flavours","revenue":8408.80,"orders":6790,"pct":1.2},
-    {"category":"Packaged Chocolate","revenue":4407.64,"orders":487,"pct":0.6}
-  ],
-  "hour": [
-    {"hour":6,"revenue":21900.27,"orders":4594},
-    {"hour":7,"revenue":63526.47,"orders":13428},
-    {"hour":8,"revenue":82699.87,"orders":17654},
-    {"hour":9,"revenue":85169.53,"orders":17764},
-    {"hour":10,"revenue":88673.39,"orders":18545},
-    {"hour":11,"revenue":46319.14,"orders":9766},
-    {"hour":12,"revenue":40192.79,"orders":8708},
-    {"hour":13,"revenue":40367.45,"orders":8714},
-    {"hour":14,"revenue":41304.74,"orders":8933},
-    {"hour":15,"revenue":41733.10,"orders":8979},
-    {"hour":16,"revenue":41122.75,"orders":9093},
-    {"hour":17,"revenue":40134.31,"orders":8745},
-    {"hour":18,"revenue":34286.20,"orders":7498},
-    {"hour":19,"revenue":28446.68,"orders":6092},
-    {"hour":20,"revenue":2935.64,"orders":603}
-  ],
-  "sizes": [
-    {"label":"Lg","revenue":237958.15,"orders":44885,"units":68540},
-    {"label":"Food & Packaged","revenue":214690.13,"orders":44518,"units":54321},
-    {"label":"Rg","revenue":199761.35,"orders":45789,"units":70186},
-    {"label":"Sm","revenue":46402.70,"orders":13924,"units":21423}
-  ],
-  "products": [
-    {"code":"61","desc":"Sustainably Grown Organic Lg","revenue":21151.75,"units":4453,"orders":2961},
-    {"code":"59","desc":"Dark chocolate Lg","revenue":21006.00,"units":4668,"orders":3029},
-    {"code":"39","desc":"Latte Rg","revenue":19112.25,"units":4497,"orders":2896},
-    {"code":"41","desc":"Cappuccino Lg","revenue":17641.75,"units":4151,"orders":2772},
-    {"code":"55","desc":"Morning Sunrise Chai Lg","revenue":17384.00,"units":4346,"orders":2830},
-    {"code":"38","desc":"Latte","revenue":17257.50,"units":4602,"orders":2990},
-    {"code":"36","desc":"Jamaican Coffee River Lg","revenue":16481.25,"units":4395,"orders":2911},
-    {"code":"60","desc":"Sustainably Grown Organic Rg","revenue":16233.75,"units":4329,"orders":2842}
-  ]
-};
+/* ============================================================
+   CUBE — precomputed aggregates for every filter value ("ALL"
+   plus each of the 9 categories). Generated from the raw
+   transaction-level CSV so every chart, KPI, and insight below
+   can be recomputed instantly for any filter without needing to
+   re-aggregate row-level data in the browser.
+   ============================================================ */
+const CUBE = {"categoryOrder": ["Coffee", "Tea", "Bakery", "Drinking Chocolate", "Coffee beans", "Branded", "Loose Tea", "Flavours", "Packaged Chocolate"], "cube": {"ALL": {"summary": {"revenue": 698812.33, "orders": 149116, "units": 214470, "aov": 4.6864, "median_order": 3.75, "items_per_order": 1.4383, "share_of_total": 100.0}, "monthly": [{"month": "2023-01", "revenue": 81677.74, "orders": 17314}, {"month": "2023-02", "revenue": 76145.19, "orders": 16359}, {"month": "2023-03", "revenue": 98834.68, "orders": 21229}, {"month": "2023-04", "revenue": 118941.08, "orders": 25335}, {"month": "2023-05", "revenue": 156727.76, "orders": 33527}, {"month": "2023-06", "revenue": 166485.88, "orders": 35352}], "sizes": [{"label": "Lg", "revenue": 237958.15, "orders": 44885, "units": 68540}, {"label": "Food & Packaged", "revenue": 214690.13, "orders": 44518, "units": 54321}, {"label": "Rg", "revenue": 199761.35, "orders": 45789, "units": 70186}, {"label": "Sm", "revenue": 46402.7, "orders": 13924, "units": 21423}], "hour": [{"hour": 6, "revenue": 21900.27, "orders": 4594}, {"hour": 7, "revenue": 63526.47, "orders": 13428}, {"hour": 8, "revenue": 82699.87, "orders": 17654}, {"hour": 9, "revenue": 85169.53, "orders": 17764}, {"hour": 10, "revenue": 88673.39, "orders": 18545}, {"hour": 11, "revenue": 46319.14, "orders": 9766}, {"hour": 12, "revenue": 40192.79, "orders": 8708}, {"hour": 13, "revenue": 40367.45, "orders": 8714}, {"hour": 14, "revenue": 41304.74, "orders": 8933}, {"hour": 15, "revenue": 41733.1, "orders": 8979}, {"hour": 16, "revenue": 41122.75, "orders": 9093}, {"hour": 17, "revenue": 40134.31, "orders": 8745}, {"hour": 18, "revenue": 34286.2, "orders": 7498}, {"hour": 19, "revenue": 28446.68, "orders": 6092}, {"hour": 20, "revenue": 2935.64, "orders": 603}], "products": [{"code": "61", "desc": "Sustainably Grown Organic Lg", "revenue": 21151.75, "units": 4453, "orders": 2961}, {"code": "59", "desc": "Dark chocolate Lg", "revenue": 21006.0, "units": 4668, "orders": 3029}, {"code": "39", "desc": "Latte Rg", "revenue": 19112.25, "units": 4497, "orders": 2896}, {"code": "41", "desc": "Cappuccino Lg", "revenue": 17641.75, "units": 4151, "orders": 2772}, {"code": "55", "desc": "Morning Sunrise Chai Lg", "revenue": 17384.0, "units": 4346, "orders": 2830}, {"code": "38", "desc": "Latte", "revenue": 17257.5, "units": 4602, "orders": 2990}, {"code": "36", "desc": "Jamaican Coffee River Lg", "revenue": 16481.25, "units": 4395, "orders": 2911}, {"code": "60", "desc": "Sustainably Grown Organic Rg", "revenue": 16233.75, "units": 4329, "orders": 2842}], "category": [{"category": "Coffee", "revenue": 269952.45, "orders": 58416, "pct": 38.63}, {"category": "Tea", "revenue": 196405.95, "orders": 45449, "pct": 28.11}, {"category": "Bakery", "revenue": 82315.64, "orders": 22796, "pct": 11.78}, {"category": "Drinking Chocolate", "revenue": 72416.0, "orders": 11468, "pct": 10.36}, {"category": "Coffee beans", "revenue": 40085.25, "orders": 1753, "pct": 5.74}, {"category": "Branded", "revenue": 13607.0, "orders": 747, "pct": 1.95}, {"category": "Loose Tea", "revenue": 11213.6, "orders": 1210, "pct": 1.6}, {"category": "Flavours", "revenue": 8408.8, "orders": 6790, "pct": 1.2}, {"category": "Packaged Chocolate", "revenue": 4407.64, "orders": 487, "pct": 0.63}]}, "Coffee": {"summary": {"revenue": 269952.45, "orders": 58416, "units": 89250, "aov": 4.6212, "median_order": 4.2, "items_per_order": 1.5278, "share_of_total": 38.63, "rank": 1}, "monthly": [{"month": "2023-01", "revenue": 31256.85, "orders": 6791}, {"month": "2023-02", "revenue": 29268.95, "orders": 6349}, {"month": "2023-03", "revenue": 38303.6, "orders": 8282}, {"month": "2023-04", "revenue": 45971.2, "orders": 9930}, {"month": "2023-05", "revenue": 60362.85, "orders": 13063}, {"month": "2023-06", "revenue": 64789.0, "orders": 14001}], "sizes": [{"label": "Lg", "revenue": 88603.0, "orders": 16590, "units": 25282}, {"label": "Food & Packaged", "revenue": 54652.2, "orders": 10735, "units": 16295}, {"label": "Rg", "revenue": 80294.55, "orders": 17167, "units": 26250}, {"label": "Sm", "revenue": 46402.7, "orders": 13924, "units": 21423}], "hour": [{"hour": 6, "revenue": 7811.95, "orders": 1629}, {"hour": 7, "revenue": 23579.9, "orders": 4997}, {"hour": 8, "revenue": 30579.85, "orders": 6687}, {"hour": 9, "revenue": 31014.85, "orders": 6652}, {"hour": 10, "revenue": 33297.1, "orders": 7006}, {"hour": 11, "revenue": 18188.15, "orders": 3967}, {"hour": 12, "revenue": 16162.9, "orders": 3550}, {"hour": 13, "revenue": 16620.95, "orders": 3614}, {"hour": 14, "revenue": 16725.35, "orders": 3592}, {"hour": 15, "revenue": 16737.05, "orders": 3637}, {"hour": 16, "revenue": 16861.55, "orders": 3750}, {"hour": 17, "revenue": 16527.65, "orders": 3574}, {"hour": 18, "revenue": 14241.2, "orders": 3166}, {"hour": 19, "revenue": 10630.15, "orders": 2385}, {"hour": 20, "revenue": 973.85, "orders": 210}], "products": [{"code": "39", "desc": "Latte Rg", "revenue": 19112.25, "units": 4497, "orders": 2896}, {"code": "41", "desc": "Cappuccino Lg", "revenue": 17641.75, "units": 4151, "orders": 2772}, {"code": "38", "desc": "Latte", "revenue": 17257.5, "units": 4602, "orders": 2990}, {"code": "36", "desc": "Jamaican Coffee River Lg", "revenue": 16481.25, "units": 4395, "orders": 2911}, {"code": "40", "desc": "Cappuccino", "revenue": 15997.5, "units": 4266, "orders": 2793}, {"code": "27", "desc": "Brazilian Lg", "revenue": 15109.5, "units": 4317, "orders": 2771}, {"code": "33", "desc": "Ethiopia Lg", "revenue": 14794.5, "units": 4227, "orders": 2741}, {"code": "32", "desc": "Ethiopia Rg", "revenue": 13179.0, "units": 4393, "orders": 2866}]}, "Tea": {"summary": {"revenue": 196405.95, "orders": 45449, "units": 69737, "aov": 4.3215, "median_order": 5.0, "items_per_order": 1.5344, "share_of_total": 28.11, "rank": 2}, "monthly": [{"month": "2023-01", "revenue": 22621.95, "orders": 5258}, {"month": "2023-02", "revenue": 21733.4, "orders": 4994}, {"month": "2023-03", "revenue": 27910.65, "orders": 6499}, {"month": "2023-04", "revenue": 33356.95, "orders": 7721}, {"month": "2023-05", "revenue": 44539.85, "orders": 10276}, {"month": "2023-06", "revenue": 46243.15, "orders": 10701}], "sizes": [{"label": "Lg", "revenue": 107197.4, "orders": 22305, "units": 34137}, {"label": "Food & Packaged", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Rg", "revenue": 89208.55, "orders": 23144, "units": 35600}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 6056.05, "orders": 1345}, {"hour": 7, "revenue": 17239.85, "orders": 3957}, {"hour": 8, "revenue": 22759.0, "orders": 5223}, {"hour": 9, "revenue": 22823.05, "orders": 5296}, {"hour": 10, "revenue": 23028.55, "orders": 5271}, {"hour": 11, "revenue": 12703.95, "orders": 2948}, {"hour": 12, "revenue": 12667.1, "orders": 2887}, {"hour": 13, "revenue": 11319.9, "orders": 2673}, {"hour": 14, "revenue": 12132.5, "orders": 2819}, {"hour": 15, "revenue": 12290.15, "orders": 2846}, {"hour": 16, "revenue": 11801.45, "orders": 2803}, {"hour": 17, "revenue": 11805.25, "orders": 2767}, {"hour": 18, "revenue": 10521.05, "orders": 2422}, {"hour": 19, "revenue": 8434.7, "orders": 2001}, {"hour": 20, "revenue": 823.4, "orders": 191}], "products": [{"code": "55", "desc": "Morning Sunrise Chai Lg", "revenue": 17384.0, "units": 4346, "orders": 2830}, {"code": "57", "desc": "Spicy Eye Opener Chai Lg", "revenue": 13652.4, "units": 4404, "orders": 2951}, {"code": "45", "desc": "Peppermint Lg", "revenue": 13050.0, "units": 4350, "orders": 2857}, {"code": "49", "desc": "English Breakfast Lg", "revenue": 12927.0, "units": 4309, "orders": 2852}, {"code": "51", "desc": "Earl Grey Lg", "revenue": 12735.0, "units": 4245, "orders": 2702}, {"code": "47", "desc": "Serenity Green Tea Lg", "revenue": 12660.0, "units": 4220, "orders": 2750}, {"code": "53", "desc": "Traditional Blend Chai Lg", "revenue": 12522.0, "units": 4174, "orders": 2716}, {"code": "43", "desc": "Lemon Grass Lg", "revenue": 12267.0, "units": 4089, "orders": 2647}]}, "Bakery": {"summary": {"revenue": 82315.64, "orders": 22796, "units": 23214, "aov": 3.611, "median_order": 3.5, "items_per_order": 1.0183, "share_of_total": 11.78, "rank": 3}, "monthly": [{"month": "2023-01", "revenue": 9535.75, "orders": 2643}, {"month": "2023-02", "revenue": 9038.82, "orders": 2518}, {"month": "2023-03", "revenue": 11902.58, "orders": 3290}, {"month": "2023-04", "revenue": 14021.7, "orders": 3871}, {"month": "2023-05", "revenue": 18565.52, "orders": 5141}, {"month": "2023-06", "revenue": 19251.27, "orders": 5333}], "sizes": [{"label": "Lg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Food & Packaged", "revenue": 82315.64, "orders": 22796, "units": 23214}, {"label": "Rg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 2677.95, "orders": 741}, {"hour": 7, "revenue": 7948.44, "orders": 2211}, {"hour": 8, "revenue": 10417.84, "orders": 2878}, {"hour": 9, "revenue": 10523.91, "orders": 2930}, {"hour": 10, "revenue": 10982.5, "orders": 3059}, {"hour": 11, "revenue": 5612.06, "orders": 1538}, {"hour": 12, "revenue": 4180.44, "orders": 1155}, {"hour": 13, "revenue": 4421.08, "orders": 1222}, {"hour": 14, "revenue": 4740.46, "orders": 1307}, {"hour": 15, "revenue": 4739.7, "orders": 1316}, {"hour": 16, "revenue": 4661.42, "orders": 1281}, {"hour": 17, "revenue": 4445.21, "orders": 1219}, {"hour": 18, "revenue": 3650.94, "orders": 1028}, {"hour": 19, "revenue": 2997.82, "orders": 824}, {"hour": 20, "revenue": 315.87, "orders": 87}], "products": [{"code": "71", "desc": "Chocolate Croissant", "revenue": 11625.98, "units": 3096, "orders": 3076}, {"code": "78", "desc": "Scottish Cream Scone", "revenue": 8949.45, "units": 1985, "orders": 1952}, {"code": "72", "desc": "Ginger Scone", "revenue": 8011.61, "units": 2540, "orders": 2324}, {"code": "79", "desc": "Jumbo Savory Scone", "revenue": 7626.62, "units": 2028, "orders": 2008}, {"code": "73", "desc": "Almond Croissant", "revenue": 7168.13, "units": 1911, "orders": 1903}, {"code": "75", "desc": "Croissant", "revenue": 6861.88, "units": 1954, "orders": 1933}, {"code": "70", "desc": "Cranberry Scone", "revenue": 6818.44, "units": 2092, "orders": 2077}, {"code": "76", "desc": "Chocolate Chip Biscotti", "revenue": 6748.96, "units": 1924, "orders": 1891}]}, "Drinking Chocolate": {"summary": {"revenue": 72416.0, "orders": 11468, "units": 17457, "aov": 6.3146, "median_order": 7.0, "items_per_order": 1.5222, "share_of_total": 10.36, "rank": 4}, "monthly": [{"month": "2023-01", "revenue": 8337.75, "orders": 1333}, {"month": "2023-02", "revenue": 8132.25, "orders": 1295}, {"month": "2023-03", "revenue": 10253.5, "orders": 1620}, {"month": "2023-04", "revenue": 12266.75, "orders": 1945}, {"month": "2023-05", "revenue": 16319.75, "orders": 2581}, {"month": "2023-06", "revenue": 17106.0, "orders": 2694}], "sizes": [{"label": "Lg", "revenue": 42157.75, "orders": 5990, "units": 9121}, {"label": "Food & Packaged", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Rg", "revenue": 30258.25, "orders": 5478, "units": 8336}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 2770.5, "orders": 378}, {"hour": 7, "revenue": 6507.25, "orders": 989}, {"hour": 8, "revenue": 8166.0, "orders": 1268}, {"hour": 9, "revenue": 7787.5, "orders": 1259}, {"hour": 10, "revenue": 8070.5, "orders": 1287}, {"hour": 11, "revenue": 4853.75, "orders": 774}, {"hour": 12, "revenue": 4416.5, "orders": 706}, {"hour": 13, "revenue": 4415.0, "orders": 729}, {"hour": 14, "revenue": 4637.5, "orders": 749}, {"hour": 15, "revenue": 4456.25, "orders": 714}, {"hour": 16, "revenue": 4394.75, "orders": 741}, {"hour": 17, "revenue": 4775.75, "orders": 735}, {"hour": 18, "revenue": 3319.0, "orders": 535}, {"hour": 19, "revenue": 3506.75, "orders": 555}, {"hour": 20, "revenue": 339.0, "orders": 49}], "products": [{"code": "61", "desc": "Sustainably Grown Organic Lg", "revenue": 21151.75, "units": 4453, "orders": 2961}, {"code": "59", "desc": "Dark chocolate Lg", "revenue": 21006.0, "units": 4668, "orders": 3029}, {"code": "60", "desc": "Sustainably Grown Organic Rg", "revenue": 16233.75, "units": 4329, "orders": 2842}, {"code": "58", "desc": "Dark chocolate Rg", "revenue": 14024.5, "units": 4007, "orders": 2636}]}, "Coffee beans": {"summary": {"revenue": 40085.25, "orders": 1753, "units": 1828, "aov": 22.8667, "median_order": 19.75, "items_per_order": 1.0428, "share_of_total": 5.74, "rank": 5}, "monthly": [{"month": "2023-01", "revenue": 5245.25, "orders": 219}, {"month": "2023-02", "revenue": 4077.5, "orders": 195}, {"month": "2023-03", "revenue": 5256.2, "orders": 251}, {"month": "2023-04", "revenue": 6824.7, "orders": 295}, {"month": "2023-05", "revenue": 8768.95, "orders": 392}, {"month": "2023-06", "revenue": 9912.65, "orders": 401}], "sizes": [{"label": "Lg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Food & Packaged", "revenue": 40085.25, "orders": 1753, "units": 1828}, {"label": "Rg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 874.45, "orders": 50}, {"hour": 7, "revenue": 3602.2, "orders": 179}, {"hour": 8, "revenue": 5444.75, "orders": 261}, {"hour": 9, "revenue": 7353.25, "orders": 266}, {"hour": 10, "revenue": 7608.7, "orders": 338}, {"hour": 11, "revenue": 3295.2, "orders": 89}, {"hour": 12, "revenue": 1384.15, "orders": 58}, {"hour": 13, "revenue": 1566.65, "orders": 71}, {"hour": 14, "revenue": 1573.95, "orders": 79}, {"hour": 15, "revenue": 1573.3, "orders": 74}, {"hour": 16, "revenue": 1782.65, "orders": 91}, {"hour": 17, "revenue": 1018.75, "orders": 60}, {"hour": 18, "revenue": 1310.05, "orders": 60}, {"hour": 19, "revenue": 1427.2, "orders": 68}, {"hour": 20, "revenue": 270.0, "orders": 9}], "products": [{"code": "8", "desc": "Civet Cat", "revenue": 11700.0, "units": 260, "orders": 190}, {"code": "9", "desc": "Organic Decaf Blend", "revenue": 4657.5, "units": 206, "orders": 206}, {"code": "6", "desc": "Ethiopia", "revenue": 4578.0, "units": 218, "orders": 218}, {"code": "1", "desc": "Brazilian - Organic", "revenue": 3852.0, "units": 214, "orders": 209}, {"code": "2", "desc": "Our Old Time Diner Blend", "revenue": 3294.0, "units": 183, "orders": 183}, {"code": "4", "desc": "Primo Espresso Roast", "revenue": 3067.5, "units": 150, "orders": 150}, {"code": "7", "desc": "Jamacian Coffee River", "revenue": 2883.5, "units": 146, "orders": 146}, {"code": "3", "desc": "Espresso Roast", "revenue": 2492.75, "units": 169, "orders": 169}]}, "Branded": {"summary": {"revenue": 13607.0, "orders": 747, "units": 776, "aov": 18.2155, "median_order": 14.0, "items_per_order": 1.0388, "share_of_total": 1.95, "rank": 6}, "monthly": [{"month": "2023-01", "revenue": 1890.0, "orders": 96}, {"month": "2023-02", "revenue": 1235.0, "orders": 73}, {"month": "2023-03", "revenue": 1801.0, "orders": 98}, {"month": "2023-04", "revenue": 2379.0, "orders": 136}, {"month": "2023-05", "revenue": 2889.0, "orders": 160}, {"month": "2023-06", "revenue": 3413.0, "orders": 184}], "sizes": [{"label": "Lg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Food & Packaged", "revenue": 13607.0, "orders": 747, "units": 776}, {"label": "Rg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 406.0, "orders": 25}, {"hour": 7, "revenue": 1754.0, "orders": 92}, {"hour": 8, "revenue": 2098.0, "orders": 102}, {"hour": 9, "revenue": 2035.0, "orders": 110}, {"hour": 10, "revenue": 1745.0, "orders": 98}, {"hour": 11, "revenue": 532.0, "orders": 34}, {"hour": 12, "revenue": 470.0, "orders": 27}, {"hour": 13, "revenue": 966.0, "orders": 48}, {"hour": 14, "revenue": 428.0, "orders": 30}, {"hour": 15, "revenue": 1001.0, "orders": 50}, {"hour": 16, "revenue": 504.0, "orders": 35}, {"hour": 17, "revenue": 522.0, "orders": 32}, {"hour": 18, "revenue": 468.0, "orders": 30}, {"hour": 19, "revenue": 622.0, "orders": 30}, {"hour": 20, "revenue": 56.0, "orders": 4}], "products": [{"code": "81", "desc": "I Need My Bean! T-shirt", "revenue": 6163.0, "units": 221, "orders": 221}, {"code": "83", "desc": "I Need My Bean! Latte cup", "revenue": 4509.0, "units": 315, "orders": 304}, {"code": "82", "desc": "I Need My Bean! Diner mug", "revenue": 2935.0, "units": 240, "orders": 222}]}, "Loose Tea": {"summary": {"revenue": 11213.6, "orders": 1210, "units": 1210, "aov": 9.2674, "median_order": 8.95, "items_per_order": 1.0, "share_of_total": 1.6, "rank": 7}, "monthly": [{"month": "2023-01", "revenue": 1293.85, "orders": 141}, {"month": "2023-02", "revenue": 1277.85, "orders": 137}, {"month": "2023-03", "revenue": 1646.95, "orders": 178}, {"month": "2023-04", "revenue": 1829.15, "orders": 197}, {"month": "2023-05", "revenue": 2395.15, "orders": 259}, {"month": "2023-06", "revenue": 2770.65, "orders": 298}], "sizes": [{"label": "Lg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Food & Packaged", "revenue": 11213.6, "orders": 1210, "units": 1210}, {"label": "Rg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 614.45, "orders": 64}, {"hour": 7, "revenue": 1229.05, "orders": 134}, {"hour": 8, "revenue": 1403.85, "orders": 153}, {"hour": 9, "revenue": 2072.15, "orders": 224}, {"hour": 10, "revenue": 1608.45, "orders": 173}, {"hour": 11, "revenue": 457.95, "orders": 49}, {"hour": 12, "revenue": 476.5, "orders": 52}, {"hour": 13, "revenue": 458.55, "orders": 48}, {"hour": 14, "revenue": 471.3, "orders": 50}, {"hour": 15, "revenue": 423.25, "orders": 46}, {"hour": 16, "revenue": 595.35, "orders": 66}, {"hour": 17, "revenue": 496.9, "orders": 54}, {"hour": 18, "revenue": 414.5, "orders": 44}, {"hour": 19, "revenue": 472.35, "orders": 51}, {"hour": 20, "revenue": 19.0, "orders": 2}], "products": [{"code": "17", "desc": "Morning Sunrise Chai", "revenue": 1596.0, "units": 168, "orders": 168}, {"code": "15", "desc": "Serenity Green Tea", "revenue": 1470.75, "units": 159, "orders": 159}, {"code": "13", "desc": "English Breakfast", "revenue": 1440.95, "units": 161, "orders": 161}, {"code": "12", "desc": "Peppermint", "revenue": 1369.35, "units": 153, "orders": 153}, {"code": "16", "desc": "Traditional Blend Chai", "revenue": 1369.35, "units": 153, "orders": 153}, {"code": "11", "desc": "Lemon Grass", "revenue": 1360.4, "units": 152, "orders": 152}, {"code": "18", "desc": "Spicy Eye Opener Chai", "revenue": 1335.9, "units": 122, "orders": 122}, {"code": "14", "desc": "Earl Grey", "revenue": 1270.9, "units": 142, "orders": 142}]}, "Flavours": {"summary": {"revenue": 8408.8, "orders": 6790, "units": 10511, "aov": 1.2384, "median_order": 1.6, "items_per_order": 1.548, "share_of_total": 1.2, "rank": 8}, "monthly": [{"month": "2023-01", "revenue": 974.4, "orders": 776}, {"month": "2023-02", "revenue": 930.4, "orders": 747}, {"month": "2023-03", "revenue": 1172.0, "orders": 946}, {"month": "2023-04", "revenue": 1418.4, "orders": 1145}, {"month": "2023-05", "revenue": 1905.6, "orders": 1547}, {"month": "2023-06", "revenue": 2008.0, "orders": 1629}], "sizes": [{"label": "Lg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Food & Packaged", "revenue": 8408.8, "orders": 6790, "units": 10511}, {"label": "Rg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 430.4, "orders": 328}, {"hour": 7, "revenue": 985.6, "orders": 798}, {"hour": 8, "revenue": 1224.8, "orders": 1020}, {"hour": 9, "revenue": 1176.0, "orders": 985}, {"hour": 10, "revenue": 1532.8, "orders": 1221}, {"hour": 11, "revenue": 427.2, "orders": 346}, {"hour": 12, "revenue": 333.6, "orders": 259}, {"hour": 13, "revenue": 339.2, "orders": 277}, {"hour": 14, "revenue": 356.8, "orders": 287}, {"hour": 15, "revenue": 312.0, "orders": 269}, {"hour": 16, "revenue": 394.4, "orders": 313}, {"hour": 17, "revenue": 351.2, "orders": 278}, {"hour": 18, "revenue": 277.6, "orders": 203}, {"hour": 19, "revenue": 204.8, "orders": 162}, {"hour": 20, "revenue": 62.4, "orders": 44}], "products": [{"code": "65", "desc": "Sugar Free Vanilla syrup", "revenue": 2324.0, "units": 2905, "orders": 1811}, {"code": "84", "desc": "Chocolate syrup", "revenue": 2126.4, "units": 2658, "orders": 1733}, {"code": "63", "desc": "Carmel syrup", "revenue": 2060.8, "units": 2576, "orders": 1725}, {"code": "64", "desc": "Hazelnut syrup", "revenue": 1897.6, "units": 2372, "orders": 1521}]}, "Packaged Chocolate": {"summary": {"revenue": 4407.64, "orders": 487, "units": 487, "aov": 9.0506, "median_order": 7.6, "items_per_order": 1.0, "share_of_total": 0.63, "rank": 9}, "monthly": [{"month": "2023-01", "revenue": 521.94, "orders": 57}, {"month": "2023-02", "revenue": 451.02, "orders": 51}, {"month": "2023-03", "revenue": 588.2, "orders": 65}, {"month": "2023-04", "revenue": 873.23, "orders": 95}, {"month": "2023-05", "revenue": 981.09, "orders": 108}, {"month": "2023-06", "revenue": 992.16, "orders": 111}], "sizes": [{"label": "Lg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Food & Packaged", "revenue": 4407.64, "orders": 487, "units": 487}, {"label": "Rg", "revenue": 0.0, "orders": 0, "units": 0}, {"label": "Sm", "revenue": 0.0, "orders": 0, "units": 0}], "hour": [{"hour": 6, "revenue": 258.52, "orders": 34}, {"hour": 7, "revenue": 680.18, "orders": 71}, {"hour": 8, "revenue": 605.78, "orders": 62}, {"hour": 9, "revenue": 383.82, "orders": 42}, {"hour": 10, "revenue": 799.79, "orders": 92}, {"hour": 11, "revenue": 248.88, "orders": 21}, {"hour": 12, "revenue": 101.6, "orders": 14}, {"hour": 13, "revenue": 260.12, "orders": 32}, {"hour": 14, "revenue": 238.88, "orders": 20}, {"hour": 15, "revenue": 200.4, "orders": 27}, {"hour": 16, "revenue": 127.18, "orders": 13}, {"hour": 17, "revenue": 191.6, "orders": 26}, {"hour": 18, "revenue": 83.86, "orders": 10}, {"hour": 19, "revenue": 150.91, "orders": 16}, {"hour": 20, "revenue": 76.12, "orders": 7}], "products": [{"code": "21", "desc": "Chili Mayan", "revenue": 1972.84, "units": 148, "orders": 148}, {"code": "20", "desc": "Sustainably Grown Organic", "revenue": 1679.6, "units": 221, "orders": 221}, {"code": "19", "desc": "Dark chocolate", "revenue": 755.2, "units": 118, "orders": 118}]}}};
 
 const fmtUSD = n => '$' + Math.round(n).toLocaleString('en-US');
 const fmtUSD2 = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtInt = n => n.toLocaleString('en-US');
 const fmtCompact = n => '$' + Math.round(n/1000) + 'K';
+function fmtK(n){
+  if(Math.abs(n) >= 1000){
+    const s = (n/1000).toFixed(1).replace(/\.0$/, '');
+    return '$' + s + 'K';
+  }
+  return '$' + Math.round(n);
+}
+function hourLabel(h){ if(h === 12) return '12pm'; return h > 12 ? (h-12) + 'pm' : h + 'am'; }
+function monthName(ym){
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[parseInt(ym.split('-')[1],10)-1];
+}
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+const SIZE_LABEL_WORD = {Lg:'Large', Rg:'Regular', Sm:'Small', 'Food & Packaged':'Food & packaged'};
 
-/* ============================================================
-   STEP 1 — Render all plain-DOM content first (KPI numbers,
-   category legend, product leaderboard). None of this depends
-   on Chart.js, so it always renders even if the chart library
-   fails to load from its CDN.
-   ============================================================ */
-function countUp(el, target, isCurrency, suffix){
-  const dur = 900; const start = performance.now();
+/* Smoothly animates a number into a DOM element. Re-entrant: if a
+   newer call lands on the same element mid-animation, the older one
+   bails out instead of fighting over the textContent. */
+const _countTokens = {};
+function countUp(el, target, isCurrency){
+  const myToken = (_countTokens[el.id]||0) + 1;
+  _countTokens[el.id] = myToken;
+  const startVal = parseFloat((el.textContent||'0').replace(/[^0-9.\-]/g,'')) || 0;
+  const dur = 650; const start = performance.now();
   function tick(now){
+    if(_countTokens[el.id] !== myToken) return;
     const p = Math.min((now-start)/dur, 1);
     const eased = 1 - Math.pow(1-p, 3);
-    const val = target * eased;
-    el.textContent = (isCurrency ? fmtUSD(val) : fmtInt(Math.round(val))) + (suffix||'');
+    const val = startVal + (target-startVal) * eased;
+    el.textContent = isCurrency ? fmtUSD(val) : fmtInt(Math.round(val));
     if(p < 1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 }
 
-countUp(document.getElementById('kpi-revenue'), DATA.summary.total_revenue, true);
-countUp(document.getElementById('kpi-orders'), DATA.summary.n_orders, false);
-countUp(document.getElementById('kpi-units'), DATA.summary.total_units, false);
-document.getElementById('kpi-aov').textContent = fmtUSD2(DATA.summary.aov);
+/* ---------------- Fixed display structures (axis order / legend
+   grouping never change across filters — only values + highlight
+   state do) ---------------- */
+const ALLCAT = CUBE.cube.ALL.category;
+const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc','#94a3b8'];
+const topCats = ALLCAT.slice(0,7);
+const restCats = ALLCAT.slice(7);
+const otherRev = restCats.reduce((s,d)=>s+d.revenue,0);
+const otherPct = Math.round(restCats.reduce((s,d)=>s+d.pct,0)*10)/10;
+const catLabels = [...topCats.map(d=>d.category), `Other (${restCats.length} categories)`];
+const catValues = [...topCats.map(d=>d.revenue), otherRev];
+const catPcts = [...topCats.map(d=>d.pct), otherPct];
+const catNameToIndex = {};
+topCats.forEach((d,i) => catNameToIndex[d.category]=i);
+restCats.forEach(d => catNameToIndex[d.category]=catLabels.length-1);
 
-/* ---------------- Category filter (functional) ---------------- */
-const catSelect = document.getElementById('categoryFilter');
-const filterSub = document.getElementById('filterSub');
-const optAll = document.createElement('option');
-optAll.value = 'all';
-optAll.textContent = `All ${DATA.category.length} categories`;
-catSelect.appendChild(optAll);
-DATA.category.forEach(c => {
-  const o = document.createElement('option');
-  o.value = c.category; o.textContent = c.category;
-  catSelect.appendChild(o);
-});
-function updateFilterSub(){
-  if(catSelect.value === 'all'){
-    filterSub.textContent = `All ${DATA.category.length} categories · ${fmtInt(DATA.summary.n_orders)} orders · ${fmtUSD(DATA.summary.total_revenue)} total revenue`;
-  } else {
-    const c = DATA.category.find(x => x.category === catSelect.value);
-    filterSub.textContent = `${c.category} · ${fmtInt(c.orders)} orders · ${fmtUSD(c.revenue)} revenue (${c.pct}% of total)`;
-  }
-}
-catSelect.addEventListener('change', updateFilterSub);
-updateFilterSub();
-
-const monthLabels = DATA.monthly.map(d => {
+const monthLabels = CUBE.cube.ALL.monthly.map(d => {
   const [y,m] = d.month.split('-');
   const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return names[parseInt(m,10)-1] + " '" + y.slice(2);
 });
+const sizeLabels = CUBE.cube.ALL.sizes.map(d=>d.label);
+const hourLabelsArr = CUBE.cube.ALL.hour.map(d=>hourLabel(d.hour));
 
-const catColors = ['#8b6bff','#29d6e8','#ff7ab8','#ffb648','#4ee69a','#6b8bff','#c084fc','#94a3b8'];
-const topCats = DATA.category.slice(0,7);
-const otherPct = DATA.category.slice(7).reduce((s,d)=>s+d.pct,0);
-const otherRev = DATA.category.slice(7).reduce((s,d)=>s+d.revenue,0);
-const catLabels = [...topCats.map(d=>d.category), 'Other (2 categories)'];
-const catValues = [...topCats.map(d=>d.revenue), otherRev];
-const catPcts = [...topCats.map(d=>d.pct), Math.round(otherPct*10)/10];
-
-const legendEl = document.getElementById('catLegend');
-catLabels.forEach((label, i) => {
-  const row = document.createElement('div');
-  row.className = 'cat-row';
-  row.innerHTML = `<span class="cat-swatch" style="background:${catColors[i]}"></span><span class="cat-name">${label}</span><span class="cat-pct">${catPcts[i]}%</span>`;
-  legendEl.appendChild(row);
+/* ---------------- Category filter ---------------- */
+const catSelect = document.getElementById('categoryFilter');
+const filterSub = document.getElementById('filterSub');
+const clearBtn = document.getElementById('clearFilterBtn');
+const optAll = document.createElement('option');
+optAll.value = 'ALL';
+optAll.textContent = `All ${CUBE.categoryOrder.length} categories`;
+catSelect.appendChild(optAll);
+CUBE.categoryOrder.forEach(name => {
+  const o = document.createElement('option');
+  o.value = name; o.textContent = name;
+  catSelect.appendChild(o);
 });
+catSelect.addEventListener('change', () => render(catSelect.value));
+clearBtn.addEventListener('click', () => { catSelect.value = 'ALL'; render('ALL'); });
 
-const prodList = document.getElementById('productList');
-const maxRev = Math.max(...DATA.products.map(p=>p.revenue));
-DATA.products.forEach((p, i) => {
-  const pct = (p.revenue / maxRev) * 100;
+/* ---------------- Category legend (clickable rows cross-filter) ---------------- */
+const legendEl = document.getElementById('catLegend');
+const legendRows = [];
+catLabels.forEach((label, i) => {
+  const isOther = (i === catLabels.length-1);
   const row = document.createElement('div');
-  row.className = 'lb-row';
-  row.innerHTML = `
-    <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
-    <div>
-      <div class="lb-name">${p.desc}</div>
-      <div class="lb-code">#${p.code} &middot; ${fmtInt(p.units)} units &middot; ${fmtInt(p.orders)} orders</div>
-    </div>
-    <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
-    <div>
-      <div class="lb-value">${fmtUSD(p.revenue)}</div>
-      <div class="lb-sub">${((p.revenue/DATA.summary.total_revenue)*100).toFixed(1)}% of revenue</div>
-    </div>
-  `;
-  prodList.appendChild(row);
+  row.className = 'cat-row' + (isOther ? '' : ' clickable');
+  if(isOther) row.title = `Includes: ${restCats.map(d=>d.category).join(', ')}`;
+  row.innerHTML = `<span class="cat-swatch" style="background:${catColors[i]}"></span><span class="cat-name">${label}</span><span class="cat-pct">${catPcts[i]}%</span>`;
+  if(!isOther){
+    row.addEventListener('click', () => { catSelect.value = label; render(label); });
+  }
+  legendEl.appendChild(row);
+  legendRows.push(row);
 });
 
 /* ============================================================
-   STEP 2 — Charts. Guarded so a CDN hiccup can't blank the rest
-   of the page; each chart is also wrapped individually so one
-   bad render doesn't take the others down with it.
+   Charts — created once with fixed labels/colors; render() below
+   mutates only the values (and, for the category donut, the
+   highlight state) on every filter change via .update().
    ============================================================ */
 function showChartFallback(canvas, msg){
   const box = canvas.closest('.chart-box');
   if(box) box.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5e6b85;font-size:12px;text-align:center;padding:0 20px;">${msg}</div>`;
 }
+
+let chartMonthly=null, chartCategory=null, chartSize=null, chartHour=null;
 
 if (typeof Chart === 'undefined') {
   document.querySelectorAll('canvas').forEach(c => showChartFallback(c, 'Chart library failed to load — check your internet connection and reload.'));
@@ -546,37 +512,28 @@ Chart.defaults.color = '#93a0b8';
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 11.5;
 
-/* ---------------- Monthly combo chart ---------------- */
 try {
-new Chart(document.getElementById('chartMonthly'), {
+chartMonthly = new Chart(document.getElementById('chartMonthly'), {
   data: {
     labels: monthLabels,
     datasets: [
       {
-        type: 'bar',
-        label: 'Revenue',
-        data: DATA.monthly.map(d => d.revenue),
+        type: 'bar', label: 'Revenue',
+        data: CUBE.cube.ALL.monthly.map(d => d.revenue),
         backgroundColor: (ctx) => {
           const g = ctx.chart.ctx.createLinearGradient(0,0,0,260);
           g.addColorStop(0, 'rgba(139,107,255,0.95)');
           g.addColorStop(1, 'rgba(41,214,232,0.35)');
           return g;
         },
-        borderRadius: 6,
-        yAxisID: 'y',
-        order: 2
+        borderRadius: 6, yAxisID: 'y', order: 2
       },
       {
-        type: 'line',
-        label: 'Orders',
-        data: DATA.monthly.map(d => d.orders),
-        borderColor: '#ff7ab8',
-        backgroundColor: '#ff7ab8',
-        pointRadius: 3,
-        pointBackgroundColor: '#ff7ab8',
-        tension: 0.35,
-        yAxisID: 'y1',
-        order: 1
+        type: 'line', label: 'Orders',
+        data: CUBE.cube.ALL.monthly.map(d => d.orders),
+        borderColor: '#ff7ab8', backgroundColor: '#ff7ab8',
+        pointRadius: 3, pointBackgroundColor: '#ff7ab8', tension: 0.35,
+        yAxisID: 'y1', order: 1
       }
     ]
   },
@@ -588,9 +545,7 @@ new Chart(document.getElementById('chartMonthly'), {
       tooltip: {
         backgroundColor:'#161d2e', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, padding:10,
         titleColor:'#f3f5fa', bodyColor:'#c9d2e3',
-        callbacks: {
-          label: (c) => c.dataset.label === 'Revenue' ? '  Revenue: ' + fmtUSD(c.raw) : '  Orders: ' + fmtInt(c.raw)
-        }
+        callbacks: { label: (c) => c.dataset.label === 'Revenue' ? '  Revenue: ' + fmtUSD(c.raw) : '  Orders: ' + fmtInt(c.raw) }
       }
     },
     scales: {
@@ -600,18 +555,20 @@ new Chart(document.getElementById('chartMonthly'), {
     }
   }
 });
-} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Monthly chart failed:', e); showChartFallback(document.getElementById('chartMonthly'), "Couldn't render this chart."); }
 
-/* ---------------- Category doughnut ---------------- */
 try {
-new Chart(document.getElementById('chartCategory'), {
+chartCategory = new Chart(document.getElementById('chartCategory'), {
   type: 'doughnut',
-  data: {
-    labels: catLabels,
-    datasets: [{ data: catValues, backgroundColor: catColors, borderColor: '#0a0e17', borderWidth:3, hoverOffset:6 }]
-  },
+  data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: catColors.slice(), borderColor: '#0a0e17', borderWidth:3, hoverOffset:6, offset: catLabels.map(()=>0) }] },
   options: {
     responsive:true, maintainAspectRatio:false, cutout:'68%',
+    onClick: (evt, elements) => {
+      if(!elements.length) return;
+      const idx = elements[0].index;
+      if(idx === catLabels.length-1) return;
+      catSelect.value = catLabels[idx]; render(catLabels[idx]);
+    },
     plugins: {
       legend:{display:false},
       tooltip:{
@@ -622,21 +579,12 @@ new Chart(document.getElementById('chartCategory'), {
     }
   }
 });
-} catch(e) { console.error('Category chart failed:', e); showChartFallback(document.getElementById('chartCategory'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Category chart failed:', e); showChartFallback(document.getElementById('chartCategory'), "Couldn't render this chart."); }
 
-/* ---------------- Size / menu-type bar ---------------- */
 try {
-new Chart(document.getElementById('chartSize'), {
+chartSize = new Chart(document.getElementById('chartSize'), {
   type: 'bar',
-  data: {
-    labels: DATA.sizes.map(d=>d.label),
-    datasets: [{
-      data: DATA.sizes.map(d=>d.revenue),
-      backgroundColor: '#29d6e8',
-      borderRadius: 5,
-      barThickness: 14
-    }]
-  },
+  data: { labels: sizeLabels, datasets: [{ data: CUBE.cube.ALL.sizes.map(d=>d.revenue), backgroundColor: '#29d6e8', borderRadius: 5, barThickness: 14 }] },
   options: {
     indexAxis: 'y', responsive:true, maintainAspectRatio:false,
     plugins: {
@@ -653,25 +601,12 @@ new Chart(document.getElementById('chartSize'), {
     }
   }
 });
-} catch(e) { console.error('Size chart failed:', e); showChartFallback(document.getElementById('chartSize'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Size chart failed:', e); showChartFallback(document.getElementById('chartSize'), "Couldn't render this chart."); }
 
-/* ---------------- Orders by hour bar ---------------- */
 try {
-function hourLabel(h){
-  if(h === 12) return '12p';
-  return h > 12 ? (h-12) + 'p' : h + 'a';
-}
-new Chart(document.getElementById('chartHour'), {
+chartHour = new Chart(document.getElementById('chartHour'), {
   type: 'bar',
-  data: {
-    labels: DATA.hour.map(d=>hourLabel(d.hour)),
-    datasets: [{
-      data: DATA.hour.map(d=>d.orders),
-      backgroundColor: DATA.hour.map(d=> d.hour===10 ? '#ff7ab8' : 'rgba(139,107,255,0.75)'),
-      borderRadius: 7,
-      maxBarThickness: 40
-    }]
-  },
+  data: { labels: hourLabelsArr, datasets: [{ data: CUBE.cube.ALL.hour.map(d=>d.orders), backgroundColor: CUBE.cube.ALL.hour.map(d=> d.hour===10 ? '#ff7ab8' : 'rgba(139,107,255,0.75)'), borderRadius: 7, maxBarThickness: 40 }] },
   options: {
     responsive:true, maintainAspectRatio:false,
     plugins: {
@@ -688,9 +623,217 @@ new Chart(document.getElementById('chartHour'), {
     }
   }
 });
-} catch(e) { console.error('Hour chart failed:', e); showChartFallback(document.getElementById('chartHour'), 'Couldn\'t render this chart.'); }
+} catch(e) { console.error('Hour chart failed:', e); showChartFallback(document.getElementById('chartHour'), "Couldn't render this chart."); }
 
 } // end Chart-available guard
+
+/* ============================================================
+   Insight generators — formula-driven so every one of the 9
+   categories (not just a couple of hand-picked ones) gets an
+   accurate, sensibly-phrased sentence.
+   ============================================================ */
+function renderGrowthInsight(monthly, label){
+  const titleEl = document.getElementById('insight1Title');
+  const textEl = document.getElementById('insight1Text');
+  const nz = monthly.filter(m=>m.revenue>0);
+  if(nz.length < 2){
+    titleEl.textContent = label ? `${label} has limited activity` : 'Limited trend data';
+    textEl.innerHTML = `Not enough active months to compute a trend${label?` for ${label}`:''}.`;
+    return;
+  }
+  const first = nz[0], last = nz[nz.length-1];
+  const growthPct = ((last.revenue-first.revenue)/first.revenue)*100;
+  const momPct = ((nz[nz.length-1].revenue-nz[nz.length-2].revenue)/nz[nz.length-2].revenue)*100;
+  const subj = label || 'Sales';
+  let title;
+  if(growthPct >= 80) title = `${subj} nearly doubled in H1`;
+  else if(growthPct >= 15) title = `${subj} grew steadily in H1`;
+  else if(growthPct >= 0) title = `${subj} held roughly flat in H1`;
+  else title = `${subj} softened in H1`;
+  let text = `Revenue grew from <b>${fmtK(first.revenue)}</b> in ${monthName(first.month)} to <b>${fmtK(last.revenue)}</b> in ${monthName(last.month)} — ${growthPct>=0?'up':'down'} <b>${growthPct>=0?'+':'-'}${Math.abs(growthPct).toFixed(1)}%</b> over the period, including <b>${momPct>=0?'+':'-'}${Math.abs(momPct).toFixed(1)}%</b> month-over-month in ${monthName(last.month)}.`;
+  titleEl.textContent = title;
+  textEl.innerHTML = text;
+}
+
+function renderCategoryInsight(filterKey, slice){
+  const titleEl = document.getElementById('insight2Title');
+  const textEl = document.getElementById('insight2Text');
+  if(filterKey === 'ALL'){
+    const top2 = ALLCAT.slice(0,2);
+    const third = ALLCAT[2];
+    const combined = Math.round((top2[0].pct+top2[1].pct)*10)/10;
+    titleEl.textContent = `${top2[0].category} and ${top2[1].category} drive most of sales`;
+    textEl.innerHTML = `<b>${top2[0].category}</b> (${fmtK(top2[0].revenue)}) and <b>${top2[1].category}</b> (${fmtK(top2[1].revenue)}) together make up <b>${combined}%</b> of revenue, with ${third.category} a distant third at <b>${third.pct}%</b>.`;
+  } else {
+    const total = CUBE.categoryOrder.length;
+    const leader = ALLCAT[0];
+    titleEl.textContent = `${filterKey} ranks #${slice.summary.rank} of ${total} categories`;
+    const leaderClause = slice.summary.rank === 1 ? 'the best-selling category in the shop.' : `behind ${leader.category} as the top seller.`;
+    textEl.innerHTML = `<b>${filterKey}</b> generates <b>${fmtUSD(slice.summary.revenue)}</b> (<b>${slice.summary.share_of_total}%</b> of total revenue) across ${fmtInt(slice.summary.orders)} orders — ${leaderClause}`;
+  }
+}
+
+function renderDaypartInsight(hourArr, label){
+  const titleEl = document.getElementById('insight3Title');
+  const textEl = document.getElementById('insight3Text');
+  const totalRev = hourArr.reduce((s,d)=>s+d.revenue,0);
+  if(totalRev <= 0){
+    titleEl.textContent = label ? `No hourly data for ${label}` : 'No hourly data';
+    textEl.textContent = 'This slice has no recorded transactions.';
+    return;
+  }
+  let peakIdx = 0;
+  hourArr.forEach((d,i) => { if(d.revenue > hourArr[peakIdx].revenue) peakIdx = i; });
+  const winStart = Math.max(0, peakIdx-1), winEnd = Math.min(hourArr.length-1, peakIdx+1);
+  let winRev = 0, winOrders = 0;
+  for(let i=winStart;i<=winEnd;i++){ winRev += hourArr[i].revenue; winOrders += hourArr[i].orders; }
+  const winPct = (winRev/totalRev)*100;
+  const peak = hourArr[peakIdx];
+  const subj = label || 'Sales';
+  titleEl.textContent = `${subj} peak${label?'s':''} at ${hourLabel(peak.hour)}`;
+  textEl.innerHTML = `The <b>${hourLabel(hourArr[winStart].hour)}&ndash;${hourLabel(hourArr[winEnd].hour)}</b> window accounts for <b>${winPct.toFixed(1)}%</b> of ${label?label+' ':''}revenue, peaking at <b>${hourLabel(peak.hour)}</b> with <b>${fmtK(peak.revenue)}</b> across ${fmtInt(peak.orders)} orders.`;
+}
+
+function applyDonutHighlight(filterKey){
+  if(filterKey === 'ALL'){
+    legendRows.forEach(r => r.classList.remove('cat-row-dim','cat-row-active'));
+    if(chartCategory){
+      chartCategory.data.datasets[0].backgroundColor = catColors.slice();
+      chartCategory.data.datasets[0].offset = catLabels.map(()=>0);
+      chartCategory.update();
+    }
+    return;
+  }
+  const activeIdx = catNameToIndex[filterKey];
+  legendRows.forEach((r,i) => {
+    r.classList.toggle('cat-row-active', i===activeIdx);
+    r.classList.toggle('cat-row-dim', i!==activeIdx);
+  });
+  if(chartCategory){
+    chartCategory.data.datasets[0].backgroundColor = catColors.map((c,i)=> i===activeIdx ? c : hexToRgba(c,0.22));
+    chartCategory.data.datasets[0].offset = catLabels.map((_,i)=> i===activeIdx ? 12 : 0);
+    chartCategory.update();
+  }
+}
+
+function renderSizes(sizesArr, label){
+  if(chartSize){
+    chartSize.data.datasets[0].data = sizesArr.map(d=>d.revenue);
+    chartSize.update();
+  }
+  const named = {}; sizesArr.forEach(s=> named[s.label]=s);
+  const sizedRev = (named['Lg']?named['Lg'].revenue:0)+(named['Rg']?named['Rg'].revenue:0)+(named['Sm']?named['Sm'].revenue:0);
+  const unsizedRev = named['Food & Packaged'] ? named['Food & Packaged'].revenue : 0;
+  const totalRev = sizedRev+unsizedRev;
+  const sizedPct = totalRev>0 ? (sizedRev/totalRev)*100 : 0;
+  const unsizedPct = 100-sizedPct;
+  document.getElementById('sizeSplitFill').style.width = sizedPct+'%';
+  document.getElementById('sizeSplitFill2').style.width = unsizedPct+'%';
+  document.getElementById('sizeSplitLabels').innerHTML = `<span>☕ Sized drinks (Sm/Rg/Lg) &middot; <b>${sizedPct.toFixed(1)}%</b></span><span><b>${unsizedPct.toFixed(1)}%</b> &middot; Bakery &amp; packaged</span>`;
+
+  const noteEl = document.getElementById('sizeNote');
+  const sizedKeys = ['Lg','Rg','Sm'].filter(k => named[k] && named[k].orders>0);
+  if(sizedKeys.length===0){
+    noteEl.innerHTML = `${label ? `<b>${label}</b> isn't` : "This category isn't"} sold in drink sizes &mdash; all revenue comes from unsized food &amp; packaged items.`;
+    return;
+  }
+  const avgs = sizedKeys.map(k => ({k, avg: named[k].revenue/named[k].orders}));
+  avgs.sort((a,b)=>b.avg-a.avg);
+  if(avgs.length===1){
+    noteEl.innerHTML = `${label?`<b>${label}</b> is`:'This category is'} only sold in one drink size (${SIZE_LABEL_WORD[avgs[0].k]}), averaging <b>${fmtUSD2(avgs[0].avg)}</b> per order.`;
+    return;
+  }
+  const top = avgs[0], bottom = avgs[avgs.length-1];
+  const pctMore = ((top.avg/bottom.avg)-1)*100;
+  noteEl.innerHTML = `${SIZE_LABEL_WORD[top.k]} pours average <b>${fmtUSD2(top.avg)}</b>/order &mdash; ${pctMore.toFixed(0)}% more than ${SIZE_LABEL_WORD[bottom.k]} (<b>${fmtUSD2(bottom.avg)}</b>), the clearest upsell signal${label?` in ${label}`:' on the menu'}.`;
+}
+
+function renderHour(hourArr, label){
+  let peakIdx = 0;
+  hourArr.forEach((d,i) => { if(d.revenue > hourArr[peakIdx].revenue) peakIdx = i; });
+  const peak = hourArr[peakIdx];
+  if(chartHour){
+    chartHour.data.datasets[0].data = hourArr.map(d=>d.orders);
+    chartHour.data.datasets[0].backgroundColor = hourArr.map(d=> d.hour===peak.hour ? '#ff7ab8' : 'rgba(139,107,255,0.75)');
+    chartHour.update();
+  }
+  document.getElementById('hourCardNote').textContent = `Counter open 6am–8pm · ${hourLabel(peak.hour)} is ${label?`${label}'s`:'the daily'} peak`;
+}
+
+function renderProducts(productsArr, sliceRevenue, label){
+  const listEl = document.getElementById('productList');
+  listEl.innerHTML = '';
+  document.getElementById('productsCardTitle').textContent = label ? `Top ${productsArr.length || 0} Products — ${label}` : `Top ${productsArr.length} Products by Revenue`;
+  if(!productsArr.length){
+    listEl.innerHTML = `<div style="padding:20px 0;color:var(--text-faint);font-size:12.5px;">No product-level sales recorded for this category.</div>`;
+    return;
+  }
+  const maxRev = Math.max(...productsArr.map(p=>p.revenue));
+  productsArr.forEach((p, i) => {
+    const pct = (p.revenue / maxRev) * 100;
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    row.innerHTML = `
+      <span class="lb-rank">${String(i+1).padStart(2,'0')}</span>
+      <div>
+        <div class="lb-name">${p.desc}</div>
+        <div class="lb-code">#${p.code} &middot; ${fmtInt(p.units)} units &middot; ${fmtInt(p.orders)} orders</div>
+      </div>
+      <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+      <div>
+        <div class="lb-value">${fmtUSD(p.revenue)}</div>
+        <div class="lb-sub">${((p.revenue/sliceRevenue)*100).toFixed(1)}% of revenue</div>
+      </div>
+    `;
+    listEl.appendChild(row);
+  });
+}
+
+/* ============================================================
+   render() — the single entry point that recomputes every KPI,
+   insight, chart, and leaderboard for a given filter value.
+   ============================================================ */
+function render(filterKey){
+  const slice = CUBE.cube[filterKey];
+  if(!slice) return;
+  const isFiltered = filterKey !== 'ALL';
+  const label = isFiltered ? filterKey : '';
+
+  clearBtn.style.display = isFiltered ? '' : 'none';
+  if(!isFiltered){
+    filterSub.textContent = `All ${CUBE.categoryOrder.length} categories · ${fmtInt(slice.summary.orders)} orders · ${fmtUSD(slice.summary.revenue)} total revenue`;
+  } else {
+    filterSub.textContent = `${filterKey} · ${fmtInt(slice.summary.orders)} orders · ${fmtUSD(slice.summary.revenue)} revenue (${slice.summary.share_of_total}% of total)`;
+  }
+
+  countUp(document.getElementById('kpi-revenue'), slice.summary.revenue, true);
+  countUp(document.getElementById('kpi-orders'), slice.summary.orders, false);
+  countUp(document.getElementById('kpi-units'), slice.summary.units, false);
+  document.getElementById('kpi-aov').textContent = fmtUSD2(slice.summary.aov);
+  document.getElementById('kpi-revenue-foot').textContent = `Across ${fmtInt(slice.summary.orders)} orders`;
+  const perDay = slice.summary.orders / 181;
+  document.getElementById('kpi-orders-foot').textContent = `~${perDay < 10 ? perDay.toFixed(1) : Math.round(perDay)} orders / day avg`;
+  document.getElementById('kpi-units-foot').textContent = `${slice.summary.items_per_order.toFixed(2)} items per order avg`;
+  document.getElementById('kpi-aov-foot').textContent = `Median order: ${fmtUSD2(slice.summary.median_order)}`;
+
+  renderGrowthInsight(slice.monthly, label);
+  renderCategoryInsight(filterKey, slice);
+  renderDaypartInsight(slice.hour, label);
+
+  if(chartMonthly){
+    chartMonthly.data.datasets[0].data = slice.monthly.map(d=>d.revenue);
+    chartMonthly.data.datasets[1].data = slice.monthly.map(d=>d.orders);
+    chartMonthly.update();
+  }
+  document.getElementById('monthlyCardNote').textContent = isFiltered ? `Jan–Jun 2023 · ${filterKey} trend` : 'Jan–Jun 2023 · steady month-over-month growth';
+
+  applyDonutHighlight(filterKey);
+  renderSizes(slice.sizes, label);
+  renderHour(slice.hour, label);
+  renderProducts(slice.products, slice.summary.revenue, label);
+}
+
+render('ALL');
 </script>
 </body>
 </html>
