@@ -26,7 +26,9 @@ Open any of the prebuilt dashboards directly — no setup required:
 - [`dashboard/hotel_bookings_dashboard.html`](dashboard/hotel_bookings_dashboard.html)
 
 Each is a static file with its dataset's aggregates baked in — just open it
-in a browser.
+in a browser. Dashboards are fully interactive: click a category in the
+legend to filter the charts and headline insights down to that category
+alone, with a "Clear filter" button to reset back to the full dataset.
 
 ## Project layout
 
